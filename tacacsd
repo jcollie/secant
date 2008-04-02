@@ -65,12 +65,19 @@ class AuthenticationSessionHandler(SessionHandler):
             self.rem_addr = request.rem_addr
             self.data = request.data
 
-            #if self.action != tacacs.TAC_PLUS_AUTHEN_LOGIN:
-            #    reply = request.get_reply()
-            #    reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_ERROR
-            #    reply.user_msg = 'Only LOGIN is supported.'
-            #    reply.data = ''
-            #    return reply
+            if self.action != tacacs.TAC_PLUS_AUTHEN_LOGIN:
+                reply = request.get_reply()
+                reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_ERROR
+                reply.user_msg = 'Only LOGIN authentication action is supported.'
+                reply.data = ''
+                return reply
+
+            if self.authen_type != tacacs.TAC_PLUS_AUTHEN_TYPE_ASCII:
+                reply = request.get_reply()
+                reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_ERROR
+                reply.user_msg = 'Only ASCII authentication type is supported.'
+                reply.data = ''
+                return reply
                 
             self.start = False
         
