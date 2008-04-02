@@ -113,32 +113,44 @@ class AuthenticationSessionHandler(SessionHandler):
             reply.authentication_flags = 0
             reply.server_msg = 'Username: '
             reply.data = ''
-            
+            return reply
+
         elif self.password == '':
             log.msg('Requesting password...')
             reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_GETPASS
             reply.authentication_flags = tacacs.TAC_PLUS_REPLY_FLAG_NOECHO
             reply.server_msg = 'Password: '
             reply.data = ''
-            
+            return reply
+
         else:
             # right now we just check username/password against a
             # single username/password specified in the config
-            if self.username == config.username and self.password == config.password:
-                log.msg('Authentication successful!')
-                reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_PASS
-                reply.authentication_flags = 0
-                reply.server_msg = 'Welcome!'
-                reply.data = ''
 
-            else:
-                log.msg('Authentication failed!')
-                reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_FAIL
-                reply.authentication_flags = 0
-                reply.server_msg = 'Go Away!'
-                reply.data = ''
+            if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_LOGIN:
+                if self.username == config.username and self.password == config.password:
+                    log.msg('Authentication successful!')
+                    reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_PASS
+                    reply.authentication_flags = 0
+                    reply.server_msg = 'Welcome!'
+                    reply.data = ''
+                    return reply
 
-        return reply
+            if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_ENABLE:
+                if self.username == config.username and self.password == config.enable_password:
+                    log.msg('Authentication successful!')
+                    reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_PASS
+                    reply.authentication_flags = 0
+                    reply.server_msg = 'Welcome!'
+                    reply.data = ''
+                    return reply
+
+            log.msg('Authentication failed!')
+            reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_FAIL
+            reply.authentication_flags = 0
+            reply.server_msg = 'Go Away!'
+            reply.data = ''
+            return reply
 
 class AuthorizationSessionHandler(SessionHandler):
     def __init__(self, session_id):
