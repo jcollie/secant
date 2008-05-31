@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- mode: python -*-
+# -*- mode: python; coding: utf-8 -*-
 
 # Copyright © 2008 by Jeffrey C. Ollie
 #
