@@ -124,26 +124,26 @@ class AuthenticationSessionHandler(SessionHandler):
             return reply
 
         else:
-            # right now we just check username/password against a
-            # single username/password specified in the config
+            user = users.find_user(self.username)
 
-            if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_LOGIN:
-                if self.username == config.username and self.password == config.password:
-                    log.msg('Authentication successful!')
-                    reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_PASS
-                    reply.authentication_flags = 0
-                    reply.server_msg = 'Welcome!'
-                    reply.data = ''
-                    return reply
+            if user is not None:
+                if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_LOGIN:
+                    if user.check_login_password(self.password):
+                        log.msg('Authentication successful!')
+                        reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_PASS
+                        reply.authentication_flags = 0
+                        reply.server_msg = 'Welcome!'
+                        reply.data = ''
+                        return reply
 
-            if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_ENABLE:
-                if self.username == config.username and self.password == config.enable_password:
-                    log.msg('Authentication successful!')
-                    reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_PASS
-                    reply.authentication_flags = 0
-                    reply.server_msg = 'Welcome!'
-                    reply.data = ''
-                    return reply
+                if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_ENABLE:
+                    if user.check_enable_password(self.password)
+                        log.msg('Authentication successful!')
+                        reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_PASS
+                        reply.authentication_flags = 0
+                        reply.server_msg = 'Welcome!'
+                        reply.data = ''
+                        return reply
 
             log.msg('Authentication failed!')
             reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_FAIL

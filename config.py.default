@@ -1,4 +1,4 @@
+#!
 
 tacacs_key = ''
-username = ''
-password = ''
+users_file = 'users.xml'

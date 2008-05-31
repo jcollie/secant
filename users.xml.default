@@ -1,0 +1,9 @@
+<users>
+  <user>
+    <username>test</username>
+    <authentication>
+      <password type="enable">test123</password>
+      <password type="login">321test</password>
+    </authentication>
+  </user>
+</users>
