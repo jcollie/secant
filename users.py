@@ -48,5 +48,3 @@ def load_users():
         usernames = user_element.xpath('username')
         for username in usernames:
             print username.text
-
-load_users()
