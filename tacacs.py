@@ -141,9 +141,9 @@ def generate_pseudo_pad(header, secret_key):
     md5_1.update(secret_key)
     md5_1.update(header[:1])  # version
     md5_1.update(header[2:3]) # seq_no
-    
+
     hash = md5_1.digest()
-    
+
     while 1:
         for byte in hash:
             yield byte
@@ -178,14 +178,14 @@ class Packet:
             self.session_id = copy_of.session_id
             self.length = copy_of.length
             self.unpack_body()
-            
+
         if reply_to is not None:
             self.session_id   = reply_to.session_id
             self.seq_no       = reply_to.seq_no + 1
             self.secret_key   = reply_to.secret_key
             self.header_flags = reply_to.header_flags
             self.packet_type  = reply_to.packet_type
-            
+
     def set_header(self, header):
         self.header = header
         self.unpack_header()
@@ -194,26 +194,26 @@ class Packet:
         self.ciphertext_body = ciphertext_body
         self.decrypt_body()
         self.unpack_body()
-        
+
     def unpack_header(self):
         version, self.packet_type, self.seq_no, self.header_flags, self.session_id, self.length = struct.unpack('!BBBBII',
                                                                                                                 self.header)
         self.major_version = (version >> 4) & 0xf
         self.minor_version = version & 0xf
-        
+
     def decrypt_body(self):
         if (self.header_flags & TAC_PLUS_UNENCRYPTED_FLAG) and (self.secret_key is not None):
             self.plaintext_body = self.ciphertext_body
-            
+
         else:
             self.plaintext_body = ''.join(map(lambda (data, pad): chr(ord(data) ^ ord(pad)),
                                               zip(self.ciphertext_body[:self.length],
                                                   generate_pseudo_pad(self.header, self.secret_key))))
-            
+
     def encrypt_body(self):
         if (self.header_flags & TAC_PLUS_UNENCRYPTED_FLAG) and (self.secret_key is not None):
             self.ciphertext_body = self.plaintext_body
-            
+
         else:
             self.ciphertext_body = ''.join(map(lambda (data, pad): chr(ord(data) ^ ord(pad)),
                                                zip(self.plaintext_body[:self.length],
@@ -221,7 +221,7 @@ class Packet:
 
     def unpack_body(self):
         pass
-    
+
     def pack_header(self):
         self.header = struct.pack('!BBBBII',
                                   ((self.major_version & 0xf) << 4) | (self.minor_version & 0xf),
@@ -244,7 +244,7 @@ class Packet:
 class AuthenticationStart(Packet):
     def __init__(self, secret_key=None, copy_of=None):
         self.packet_type = TAC_PLUS_AUTHEN
-        
+
         self.action = None
         self.priv_lvl = None
         self.authen_type = None
@@ -258,11 +258,11 @@ class AuthenticationStart(Packet):
 
     def get_reply(self):
         return AuthenticationReply(reply_to=self)
-    
+
     def unpack_body(self):
         if self.plaintext_body is None:
             raise 'error'
-        
+
         (self.action,
          self.priv_lvl,
          self.authen_type,
@@ -310,12 +310,12 @@ class AuthenticationReply(Packet):
             raise 'error'
 
         Packet.__init__(self, reply_to=reply_to)
-        
+
         self.authentication_status = None
         self.authentication_flags = None
         self.server_msg = None
         self.data = None
-        
+
     def unpack_body(self):
         (self.authentication_status,
          self.authentication_flags,
@@ -350,7 +350,7 @@ class AuthenticationContinue(Packet):
         self.data = None
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
-        
+
     def get_reply(self):
         return AuthenticationReply(reply_to=self)
 
@@ -376,7 +376,7 @@ class AuthenticationContinue(Packet):
 
 class AuthorizationRequest(Packet):
     def __init__(self, secret_key=None, copy_of=None):
-        
+
         self.authen_method = None
         self.priv_lvl = None
         self.authen_type = None
@@ -387,7 +387,7 @@ class AuthorizationRequest(Packet):
         self.args = []
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
-        
+
     def unpack_body(self):
         (self.authen_method,
          self.priv_lvl,
@@ -446,14 +446,14 @@ class AuthorizationRequest(Packet):
 class AuthorizationResponse(Packet):
     def __init__(self, reply_to):
         assert isinstance(reply_to, AuthorizationRequest)
-        
+
         self.authorization_status = None
         self.args = []
         self.server_msg = ''
         self.data = ''
 
         Packet.__init__(self, reply_to=reply_to)
-        
+
     def unpack_body(self):
         (self.authorization_status,
          arg_cnt,
@@ -461,7 +461,7 @@ class AuthorizationResponse(Packet):
          data_len) = struct.unpack('!BBHH', self.plaintext_body[:6])
 
         index = 6
-        
+
         arg_lengths = map(ord, self.plaintext_body[index:index+arg_cnt])
         index += arg_cnt
 
@@ -508,7 +508,7 @@ class AccountingRequest(Packet):
         self.args = []
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
-        
+
     def unpack_body(self):
         (self.accounting_flags,
          self.authen_method,
@@ -552,7 +552,7 @@ class AccountingReply(Packet):
         self.data = ''
 
         Packet.__init__(self, reply_to=reply_to)
-        
+
     def unpack_body(self):
         (server_msg_len, data_len, self.accounting_status) = struct.unpack('!HHB', self.plaintext_body[:5])
 
