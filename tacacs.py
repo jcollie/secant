@@ -134,7 +134,7 @@ class Argument:
 
     def __len__(self):
         return len(self.key) + len(self.value) + 1
-    
+
 class TestArgument:
     def test_1(self):
         assert str(Argument('a=b')) == 'a=b'
@@ -259,7 +259,7 @@ class Packet:
         self.pack_header()
         self.encrypt_body()
         return self.header + self.ciphertext_body
-    
+
 class TestPacket:
     def test_1(self):
         p = Packet()
@@ -489,7 +489,7 @@ class AuthorizationRequest(Packet):
 
     def get_reply(self):
         return AuthorizationResponse(reply_to=self)
-    
+
 class TestAuthorizationRequest:
     def test_1(self):
         p = AuthorizationRequest()
@@ -548,7 +548,7 @@ class AuthorizationResponse(Packet):
 
         self.plaintext_body = body
         self.length = len(self.plaintext_body)
-        
+
 class TestAuthorizationResponse:
     def test_1(self):
         p = AuthorizationResponse(AuthorizationRequest())
@@ -602,7 +602,7 @@ class AccountingRequest(Packet):
 
     def get_reply(self):
         return AccountingReply(reply_to=self)
-    
+
 class TestAccountingRequest:
     def test_1(self):
         p = AccountingRequest()
