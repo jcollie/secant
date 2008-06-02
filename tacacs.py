@@ -153,6 +153,9 @@ def generate_pseudo_pad(header, secret_key):
 
 class Packet:
     def __init__(self, secret_key = None, reply_to = None, copy_of = None):
+
+        assert reply_to is None or copy_of is None
+
         self.header = None
         self.ciphertext_body = None
         self.plaintext_body = None
