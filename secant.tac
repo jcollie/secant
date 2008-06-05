@@ -20,8 +20,6 @@
 
 import sys
 
-sys.path.append('/home/jcollie/tacacs')
-
 import socket
 import struct
 import threading
@@ -31,9 +29,9 @@ from twisted.internet.protocol import Protocol, Factory
 from twisted.application import service, internet
 from twisted.python import log
 
-import tacacs
-
-import config
+from secant import tacacs
+from secant import config
+from secant import user
 
 class SessionHandler:
     def __init__(self, session_id):
