@@ -18,4 +18,17 @@
 # You should have received a copy of the GNU General Public License
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
-__all__ = ['tacacs', 'config', 'users', 'test']
+from secant.users import *
+
+class TestUser:
+    def test_1(self):
+        assert User('test', 'test123', '321test').check_login_password('test123')
+
+    def test_2(self):
+        assert not User('test', 'test123', '321test').check_login_password('321test')
+
+    def test_3(self):
+        assert User('test', 'test123', '321test').check_enable_password('321test')
+
+    def test_4(self):
+        assert not User('test', 'test123', '321test').check_enable_password('test123')

@@ -135,22 +135,6 @@ class Argument:
     def __len__(self):
         return len(self.key) + len(self.value) + 1
 
-class TestArgument:
-    def test_1(self):
-        assert str(Argument('a=b')) == 'a=b'
-
-    def test_2(self):
-        assert len(Argument('a=b')) == 3
-
-    def test_3(self):
-        assert Argument('a*b').key == 'a'
-
-    def test_4(self):
-        assert Argument('a*b').key == 'a'
-
-    def test_5(self):
-        assert Argument('a*b').is_optional
-
 def generate_pseudo_pad(header, secret_key):
     md5_1 = md5.new()
     md5_1.update(header[4:8]) # session_id
@@ -260,13 +244,6 @@ class Packet:
         self.encrypt_body()
         return self.header + self.ciphertext_body
 
-class TestPacket:
-    def test_1(self):
-        p = Packet()
-        p.pack_header()
-        print `p.header`
-        assert p.header == '\xc0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-
 class AuthenticationStart(Packet):
     def __init__(self, secret_key=None, copy_of=None):
         self.packet_type = TAC_PLUS_AUTHEN
@@ -330,13 +307,6 @@ class AuthenticationStart(Packet):
         self.plaintext_body = body
         self.length = len(self.plaintext_body)
 
-class TestAuthenticationStart:
-    def test_1(self):
-        p = AuthenticationStart()
-        p.pack_header()
-        print `p.header`
-        assert p.header == '\xc0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-
 class AuthenticationReply(Packet):
     def __init__(self, reply_to):
         if not isinstance(reply_to, (AuthenticationStart, AuthenticationContinue)):
@@ -376,13 +346,6 @@ class AuthenticationReply(Packet):
         self.plaintext_body = body
         self.length = len(self.plaintext_body)
 
-class TestAuthenticationReply:
-    def test_1(self):
-        p = AuthenticationReply(AuthenticationStart())
-        p.pack_header()
-        print `p.header`
-        assert p.header == '\xc0\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-
 class AuthenticationContinue(Packet):
     def __init__(self, secret_key=None, copy_of=None):
         self.authentication_flags = None
@@ -413,13 +376,6 @@ class AuthenticationContinue(Packet):
 
         self.plaintext_body = body
         self.length = len(self.plaintext_body)
-
-class TestAuthenticationContinue:
-    def test_1(self):
-        p = AuthenticationContinue()
-        p.pack_header()
-        print `p.header`
-        assert p.header == '\xc0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
 class AuthorizationRequest(Packet):
     def __init__(self, secret_key=None, copy_of=None):
@@ -490,13 +446,6 @@ class AuthorizationRequest(Packet):
     def get_reply(self):
         return AuthorizationResponse(reply_to=self)
 
-class TestAuthorizationRequest:
-    def test_1(self):
-        p = AuthorizationRequest()
-        p.pack_header()
-        print `p.header`
-        assert p.header == '\xc0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-
 class AuthorizationResponse(Packet):
     def __init__(self, reply_to):
         assert isinstance(reply_to, AuthorizationRequest)
@@ -549,13 +498,6 @@ class AuthorizationResponse(Packet):
         self.plaintext_body = body
         self.length = len(self.plaintext_body)
 
-class TestAuthorizationResponse:
-    def test_1(self):
-        p = AuthorizationResponse(AuthorizationRequest())
-        p.pack_header()
-        print `p.header`
-        assert p.header == '\xc0\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-
 class AccountingRequest(Packet):
     def __init__(self, secret_key = None, copy_of = None):
         self.accounting_flags = None
@@ -603,13 +545,6 @@ class AccountingRequest(Packet):
     def get_reply(self):
         return AccountingReply(reply_to=self)
 
-class TestAccountingRequest:
-    def test_1(self):
-        p = AccountingRequest()
-        p.pack_header()
-        print `p.header`
-        assert p.header == '\xc0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-
 class AccountingReply(Packet):
     def __init__(self, reply_to):
         if not isinstance(reply_to, AccountingRequest):
@@ -643,10 +578,3 @@ class AccountingReply(Packet):
 
         self.plaintext_body = body
         self.length = len(self.plaintext_body)
-
-class TestAccountingReply:
-    def test_1(self):
-        p = AccountingReply(AccountingRequest())
-        p.pack_header()
-        print `p.header`
-        assert p.header == '\xc0\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00'

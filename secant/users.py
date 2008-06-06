@@ -38,19 +38,6 @@ class User:
         else:
             return self.enable_password == password
 
-class TestUser:
-    def test_1(self):
-        assert User('test', 'test123', '321test').check_login_password('test123')
-
-    def test_2(self):
-        assert not User('test', 'test123', '321test').check_login_password('321test')
-
-    def test_3(self):
-        assert User('test', 'test123', '321test').check_enable_password('321test')
-
-    def test_4(self):
-        assert not User('test', 'test123', '321test').check_enable_password('test123')
-
 def load_users():
     user_tree = etree.parse(config.users_file)
     
