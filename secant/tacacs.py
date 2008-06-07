@@ -136,6 +136,9 @@ class Argument:
         return len(self.key) + len(self.value) + 1
 
 def generate_pseudo_pad(header, secret_key):
+    """Generate pseudo pad that is used to encrypt the packet body.
+    Algotithm is described in section 5 of the TACACS+ Internet Draft.
+    """
     md5_1 = md5.new()
     md5_1.update(header[4:8]) # session_id
     md5_1.update(secret_key)
