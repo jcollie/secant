@@ -36,6 +36,13 @@ class TestArgument:
     def test_5(self):
         assert Argument('a*b').is_optional
 
+class TestPseudoPad:
+    def test_1(self):
+        for a, b in zip(['k', '\x15', '\xdb', 'h', '\xf8', '\x1f', '\x1f', '['],
+                        generate_pseudo_pad('\xc0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',
+                                            '\0\0\0\0\0\0\0\0')):
+            assert a == b
+            
 class TestPacket:
     def test_1(self):
         p = Packet()
