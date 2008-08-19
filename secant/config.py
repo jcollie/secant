@@ -18,4 +18,26 @@
 # You should have received a copy of the GNU General Public License
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
-__all__ = ['tacacs', 'clients', 'config', 'users', 'test']
+from lxml import etree
+
+paths = {'users': 'users.xml',
+         'clients': 'clients.xml'}
+
+globals = {'enable_password': None,
+           'client_secret': None}
+
+def load_config():
+    global paths
+    global globals
+
+    config_tree = etree.parse('config.xml')
+    
+    path_elements = config_tree.xpath('/config/paths/*')
+
+    for path_element in path_elements:
+        paths[path_element.tag] = path_element.text.strip()
+
+    global_elements = config_tree.xpath('/config/globals/*')
+
+    for global_element in global_elements:
+        globals[global_element.tag] = global_element.text.strip()

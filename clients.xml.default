@@ -17,12 +17,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 -->
-<users>
-  <user>
-    <username>test</username>
-    <authentication>
-      <password type="login">321test</password>
-      <password type="enable">test123</password>
-    </authentication>
-  </user>
-</users>
+<clients>
+  <client>
+    <address>10.0.0.1</address>
+    <secret>secret</secret>
+  </client>
+</clients>

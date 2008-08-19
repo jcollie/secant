@@ -26,12 +26,14 @@ import threading
 import time
 
 from twisted.internet.protocol import Protocol, Factory
+from twisted.internet.address import IPv4Address
 from twisted.application import service, internet
 from twisted.python import log
 
 from secant import tacacs
 from secant import config
-from secant import user
+from secant import users
+from secant import clients
 
 class SessionHandler:
     def __init__(self, session_id):
@@ -152,7 +154,7 @@ class AuthenticationSessionHandler(SessionHandler):
                         return reply
 
                 if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_ENABLE:
-                    if user.check_enable_password(self.password)
+                    if user.check_enable_password(self.password):
                         log.msg('Authentication successful!')
                         reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_PASS
                         reply.authentication_flags = 0
@@ -231,11 +233,19 @@ class TacacsProtocol(Protocol):
         self.buffer = ''
         self.request = None
         self.handlers = {}
+        self.secret = None
 
     def connectionMade(self):
         log.msg('Connection made.')
         self.transport.setTcpNoDelay(True)
         #look up secret key here
+        self.peer = self.transport.getPeer()
+        if isinstance(self.peer, IPv4Address):
+            client = clients.find_client(self.peer.host)
+            if client is None:
+                self.secret = config.globals['client_secret']
+            else:
+                self.secret = client.secret
 
     def dataReceived(self, data):
         self.buffer += data
@@ -245,7 +255,7 @@ class TacacsProtocol(Protocol):
             request_header = self.buffer[:12]
             self.buffer = self.buffer[12:]
             
-            self.request = tacacs.Packet(config.tacacs_key)
+            self.request = tacacs.Packet(self.secret)
             self.request.set_header(request_header)
 
             log.msg('Header received, need %i bytes for the body.' % self.request.length)
@@ -286,6 +296,10 @@ class TacacsProtocol(Protocol):
 
     def connectionLost(self, reason):
         log.msg('Connection lost: %s' % reason)
+
+config.load_config()
+users.load_users()
+clients.load_clients()
 
 factory = Factory()
 factory.protocol = TacacsProtocol

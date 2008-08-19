@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
-import config
+from secant import config
 from lxml import etree
 
 users = {}
@@ -34,17 +34,40 @@ class User:
 
     def check_enable_password(self, password):
         if self.enable_password is None:
-            return config.global_enable_password == password
+            if config.globals.has_key('enable_password'):
+                return config.globals['enable_password'] == password
+
+            return False
+
         else:
             return self.enable_password == password
 
+def find_user(username):
+    global users
+
+    if users.has_key(username):
+        return users[username]
+
+    return None
+
 def load_users():
-    user_tree = etree.parse(config.users_file)
+    global users
+
+    user_tree = etree.parse(config.paths['users'])
     
     user_elements = user_tree.xpath('/users/user')
 
     for user_element in user_elements:
-        print dir(user_element)
-        usernames = user_element.xpath('username')
-        for username in usernames:
-            print username.text
+        username = str(user_element.xpath('username/text()')[0])
+
+        try:
+            login_password = str(user_element.xpath('authentication/password[@type="login"]/text()')[0])
+        except IndexError:
+            login_password = None
+
+        try:
+            enable_password = str(user_element.xpath('authentication/password[@type="enable"]/text()')[0])
+        except IndexError:
+            enable_password = None
+
+        users[username] = User(username, login_password = login_password, enable_password = enable_password)
