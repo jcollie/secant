@@ -1,6 +1,7 @@
 *~
-config.py
-users.xml
+/config.xml
+/clients.xml
+/users.xml
 \#*#
 .#*
 *.pyc
