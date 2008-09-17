@@ -46,6 +46,7 @@ class SecantServiceMaker(object):
 
         factory = Factory()
         factory.protocol = TacacsProtocol
-        internet.TCPServer(49, factory)
+
+        return internet.TCPServer(49, factory)
 
 secantServiceMaker = SecantServiceMaker()
