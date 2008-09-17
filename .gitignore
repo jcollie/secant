@@ -5,5 +5,6 @@
 \#*#
 .#*
 *.pyc
-twistd.log
-twistd.pid
+/twistd.log
+/twistd.pid
+/twisted/plugins/dropin.cache
