@@ -31,7 +31,12 @@ from secant import clients
 from secant import TacacsProtocol
 
 class SecantOptions(usage.Options):
-    optParameters = [['port', 'p', 49, 'The port number to listen to']]
+    def __init__(self):
+        usage.Options.__init__(self)
+        self['config_paths'] = []
+
+    def opt_config(self, path):
+        self['config_paths'].append(path)
 
 class SecantServiceMaker(object):
     implements(IServiceMaker, IPlugin)
@@ -40,7 +45,7 @@ class SecantServiceMaker(object):
     options = SecantOptions
 
     def makeService(self, options):
-        config.load_config()
+        config.load_config(options['config_paths'])
         users.load_users()
         clients.load_clients()
 

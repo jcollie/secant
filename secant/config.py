@@ -19,25 +19,50 @@
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
 from lxml import etree
+from twisted.python import log
+import os
 
-paths = {'users': 'users.xml',
-         'clients': 'clients.xml'}
+default_paths = {'users': ['./users.xml', '/etc/secant/users.xml'],
+                 'clients': ['./clients.xml', '/etc/secant/users.xml']}
+
+paths = {}
 
 globals = {'enable_password': None,
            'client_secret': None}
 
-def load_config():
+def load_config(config_paths=[]):
     global paths
     global globals
 
-    config_tree = etree.parse('config.xml')
-    
-    path_elements = config_tree.xpath('/config/paths/*')
+    if not config_paths:
+        config_paths.append('./config.xml')
+        config_paths.append('/etc/config.xml')
 
-    for path_element in path_elements:
-        paths[path_element.tag] = path_element.text.strip()
+    for config_path in config_paths:
+        try:
+            config_tree = etree.parse(config_path)
 
-    global_elements = config_tree.xpath('/config/globals/*')
+            path_elements = config_tree.xpath('/config/paths/*')
 
-    for global_element in global_elements:
-        globals[global_element.tag] = global_element.text.strip()
+            for path_element in path_elements:
+                paths.setdefault(path_element.tag, []).append(path_element.text.strip())
+
+            global_elements = config_tree.xpath('/config/globals/*')
+
+            for global_element in global_elements:
+                globals[global_element.tag] = global_element.text.strip()
+
+            log.msg('Loaded configuration from "%s"' % os.path.realpath(config_path))
+
+            break
+
+        except IOError, e:
+            log.msg('Unable to load configuration from "%s"' % config_path)
+
+    for key, value in paths.items():
+        if not value and key in default_paths:
+            paths[key] = default_paths[key]
+
+    for key, value in default_paths.items():
+        if key not in paths:
+            paths[key] = value

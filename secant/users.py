@@ -20,6 +20,8 @@
 
 from secant import config
 from lxml import etree
+from twisted.python import log
+import os
 
 users = {}
 
@@ -53,21 +55,32 @@ def find_user(username):
 def load_users():
     global users
 
-    user_tree = etree.parse(config.paths['users'])
-    
-    user_elements = user_tree.xpath('/users/user')
-
-    for user_element in user_elements:
-        username = str(user_element.xpath('username/text()')[0])
-
+    for users_path in config.paths['users']:
         try:
-            login_password = str(user_element.xpath('authentication/password[@type="login"]/text()')[0])
-        except IndexError:
-            login_password = None
+            user_tree = etree.parse(users_path)
 
-        try:
-            enable_password = str(user_element.xpath('authentication/password[@type="enable"]/text()')[0])
-        except IndexError:
-            enable_password = None
+            user_elements = user_tree.xpath('/users/user')
 
-        users[username] = User(username, login_password = login_password, enable_password = enable_password)
+            for user_element in user_elements:
+                username = str(user_element.xpath('username/text()')[0])
+
+                try:
+                    login_password = str(user_element.xpath('authentication/password[@type="login"]/text()')[0])
+                except IndexError:
+                    login_password = None
+
+                try:
+                    enable_password = str(user_element.xpath('authentication/password[@type="enable"]/text()')[0])
+                except IndexError:
+                    enable_password = None
+
+                users[username] = User(username,
+                                       login_password = login_password,
+                                       enable_password = enable_password)
+
+            log.msg('Loaded users from "%s"' % os.path.realpath(users_path))
+
+            break
+
+        except IOError:
+            log.msg('Unable to load users from "%s"' % users_path)

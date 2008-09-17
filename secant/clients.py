@@ -20,6 +20,8 @@
 
 from secant import config
 from lxml import etree
+from twisted.python import log
+import os
 
 clients = {}
 
@@ -39,18 +41,27 @@ def find_client(address):
 def load_clients():
     global clients
 
-    client_tree = etree.parse(config.paths['clients'])
-    
-    client_elements = client_tree.xpath('/clients/client')
-
-    for client_element in client_elements:
-        addresses = map(str, client_element.xpath('address/text()'))
-        secret = str(client_element.xpath('secret/text()')[0])
-        description = None
+    for clients_path in config.paths['clients']:
         try:
-            description = str(client_element.xpath('description/text()')[0])
-        except IndexError:
-            pass
-        client = Client(secret, description)
-        for address in addresses:
-            clients[address] = client
+            client_tree = etree.parse(clients_path)
+
+            client_elements = client_tree.xpath('/clients/client')
+
+            for client_element in client_elements:
+                addresses = map(str, client_element.xpath('address/text()'))
+                secret = str(client_element.xpath('secret/text()')[0])
+                description = None
+                try:
+                    description = str(client_element.xpath('description/text()')[0])
+                except IndexError:
+                    pass
+                client = Client(secret, description)
+                for address in addresses:
+                    clients[address] = client
+
+            log.msg('Loaded clients from "%s"' % os.path.realpath(clients_path))
+
+            break
+
+        except IOError:
+            log.msg('Cannot load clients from "%s"' % clients_path)
