@@ -36,7 +36,7 @@ def load_config(config_paths=[]):
 
     if not config_paths:
         config_paths.append('./config.xml')
-        config_paths.append('/etc/config.xml')
+        config_paths.append('/etc/secant/config.xml')
 
     for config_path in config_paths:
         try:
