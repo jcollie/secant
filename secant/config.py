@@ -23,7 +23,7 @@ from twisted.python import log
 import os
 
 default_paths = {'users': ['./users.xml', '/etc/secant/users.xml'],
-                 'clients': ['./clients.xml', '/etc/secant/users.xml']}
+                 'clients': ['./clients.xml', '/etc/secant/clients.xml']}
 
 paths = {}
 
