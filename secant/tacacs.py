@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- mode: python; coding: utf-8 -*-
 
 # Copyright © 2008 by Jeffrey C. Ollie
@@ -41,16 +40,22 @@ TAC_PLUS_AUTHEN_CHPASS           = 0x02
 TAC_PLUS_AUTHEN_SENDPASS         = 0x03 # (deprecated)
 TAC_PLUS_AUTHEN_SENDAUTH         = 0x04
 
+authen_action_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHEN_')])
+
 TAC_PLUS_PRIV_LVL_MAX            = 0x0f
 TAC_PLUS_PRIV_LVL_ROOT           = 0x0f
 TAC_PLUS_PRIV_LVL_USER           = 0x01
 TAC_PLUS_PRIV_LVL_MIN            = 0x00
+
+priv_lvl_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_PRIV_LVL')])
 
 TAC_PLUS_AUTHEN_TYPE_ASCII       = 0x01
 TAC_PLUS_AUTHEN_TYPE_PAP         = 0x02
 TAC_PLUS_AUTHEN_TYPE_CHAP        = 0x03
 TAC_PLUS_AUTHEN_TYPE_ARAP        = 0x04
 TAC_PLUS_AUTHEN_TYPE_MSCHAP      = 0x05
+
+authen_type_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHEN_TYPE')])
 
 TAC_PLUS_AUTHEN_SVC_NONE         = 0x00
 TAC_PLUS_AUTHEN_SVC_LOGIN        = 0x01
@@ -63,6 +68,8 @@ TAC_PLUS_AUTHEN_SVC_X25          = 0x07
 TAC_PLUS_AUTHEN_SVC_NASI         = 0x08
 TAC_PLUS_AUTHEN_SVC_FWPROXY      = 0x09
 
+authen_svc_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHEN_SVC')])
+
 TAC_PLUS_AUTHEN_STATUS_PASS      = 0x01
 TAC_PLUS_AUTHEN_STATUS_FAIL      = 0x02
 TAC_PLUS_AUTHEN_STATUS_GETDATA   = 0x03
@@ -72,9 +79,15 @@ TAC_PLUS_AUTHEN_STATUS_RESTART   = 0x06
 TAC_PLUS_AUTHEN_STATUS_ERROR     = 0x07
 TAC_PLUS_AUTHEN_STATUS_FOLLOW    = 0x21
 
+authen_status_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHEN_STATUS')])
+
 TAC_PLUS_REPLY_FLAG_NOECHO       = 0x01
 
+reply_flag_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_REPLY_FLAG')])
+
 TAC_PLUS_CONTINUE_FLAG_ABORT     = 0x01
+
+continue_flag_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_CONTINUE_FLAG')])
 
 TAC_PLUS_AUTHEN_METH_NOT_SET     = 0x00
 TAC_PLUS_AUTHEN_METH_NONE        = 0x01
@@ -88,20 +101,28 @@ TAC_PLUS_AUTHEN_METH_RADIUS      = 0x10
 TAC_PLUS_AUTHEN_METH_KRB4        = 0x11
 TAC_PLUS_AUTHEN_METH_RCMD        = 0x20
 
+authen_meth_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHEN_METH')])
+
 TAC_PLUS_AUTHOR_STATUS_PASS_ADD  = 0x01
 TAC_PLUS_AUTHOR_STATUS_PASS_REPL = 0x02
 TAC_PLUS_AUTHOR_STATUS_FAIL      = 0x10
 TAC_PLUS_AUTHOR_STATUS_ERROR     = 0x11
 TAC_PLUS_AUTHOR_STATUS_FOLLOW    = 0x21
 
+author_status_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHOR_STATUS')])
+
 TAC_PLUS_ACCT_FLAG_MORE          = 0x01 # deprecated
 TAC_PLUS_ACCT_FLAG_START         = 0x02
 TAC_PLUS_ACCT_FLAG_STOP          = 0x04
 TAC_PLUS_ACCT_FLAG_WATCHDOG      = 0x08
 
+acct_flag_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_ACCT_FLAG')])
+
 TAC_PLUS_ACCT_STATUS_SUCCESS     = 0x01
 TAC_PLUS_ACCT_STATUS_ERROR       = 0x02
 TAC_PLUS_ACCT_STATUS_FOLLOW      = 0x21
+
+acct_status_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_ACCT_STATUS')])
 
 class error:
     def __init__(self, message):
