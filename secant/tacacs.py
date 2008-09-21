@@ -430,13 +430,13 @@ class AuthorizationRequest(Packet):
         arg_lengths = map(ord, self.plaintext_body[index:index+arg_cnt])
         index += arg_cnt
 
-        user = self.plaintext_body[index:index+user_len]
+        self.user = self.plaintext_body[index:index+user_len]
         index += user_len
 
-        port = self.plaintext_body[index:index+port_len]
+        self.port = self.plaintext_body[index:index+port_len]
         index += port_len
 
-        rem_addr = self.plaintext_body[index:index+rem_addr_len]
+        self.rem_addr = self.plaintext_body[index:index+rem_addr_len]
         index += rem_addr_len
 
         self.args = []
