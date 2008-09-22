@@ -62,10 +62,7 @@ class AuthenticationSessionHandler(SessionHandler):
 
             log_message = config.log_formats.get('authentication-start')
             if log_message is not None:
-                if isinstance(log_message, basestring):
-                    log.msg(log_message)
-                else:
-                    log.msg(log_message.render(session = self, request = request))
+                log.msg(log_message.render(session = self, request = request))
             
             self.action = request.action
             self.priv_lvl = request.priv_lvl
@@ -97,10 +94,7 @@ class AuthenticationSessionHandler(SessionHandler):
 
             log_message = config.log_formats.get('authentication-continue')
             if log_message is not None:
-                if isinstance(log_message, basestring):
-                    log.msg(log_message)
-                else:
-                    log.msg(log_message.render(session = self, request = request))
+                log.msg(log_message.render(session = self, request = request))
 
             if request.authentication_flags & tacacs.TAC_PLUS_CONTINUE_FLAG_ABORT:
                 log.msg('Remote requested abort!')
@@ -129,19 +123,13 @@ class AuthenticationSessionHandler(SessionHandler):
 
             banner = self.client.get_message('banner')
             if not self.banner_shown and banner is not None:
-                if isinstance(banner, basestring):
-                    reply.server_msg += banner
-                else:
-                    reply.server_msg += banner.render(client = self.client, session = self, request = request)
+                reply.server_msg += banner.render(client = self.client, session = self, request = request)
                 reply.server_msg += '\r\n\r\n'
                 self.banner_shown = True
 
             username_prompt = self.client.get_prompt('username')
             if username_prompt is not None:
-                if isinstance(username_prompt, basestring):
-                    reply.server_msg += username_prompt
-                else:
-                    reply.server_msg += username_prompt.render(client = self.client, session = self, request = request)
+                reply.server_msg += username_prompt.render(client = self.client, session = self, request = request)
             else:
                 reply.server_msg += 'Username: '
 
@@ -219,10 +207,7 @@ class AuthorizationSessionHandler(SessionHandler):
 
         log_message = config.log_formats.get('authorization')
         if log_message is not None:
-            if isinstance(log_message, basestring):
-                log.msg(log_message)
-            else:
-                log.msg(log_message.render(session = self, request = request))
+            log.msg(log_message.render(session = self, request = request))
 
         #if request.user == '':
         #    reply = request.get_reply()
@@ -262,10 +247,7 @@ class AccountingSessionHandler(SessionHandler):
 
         log_message = config.log_formats.get('accounting')
         if log_message is not None:
-            if isinstance(log_message, basestring):
-                log.msg(log_message)
-            else:
-                log.msg(log_message.render(session = self, request = request))
+            log.msg(log_message.render(session = self, request = request))
         
         reply = request.get_reply()
         reply.accounting_status = tacacs.TAC_PLUS_ACCT_STATUS_SUCCESS

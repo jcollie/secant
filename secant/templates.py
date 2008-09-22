@@ -40,7 +40,7 @@ class GenshiTemplateCreator(object):
                                                      default_class = cls,
                                                      auto_reload = False)
 
-    def update_search_path(self, search_path):
+    def update_search_path(self, search_paths):
         self.loader.search_path = search_path
 
     def create_template(self, source = None, filename = None):
@@ -55,27 +55,55 @@ class GenshiTemplateCreator(object):
         
         raise SecantTemplateError()
 
+class PlainTemplate(object):
+    def __init__(self, source):
+        self.source = source
+
+    def __init__(self, *a, **kw):
+        return self.source
+
+class PlainTemplateCreator(object):
+    def __init__(self):
+        self.search_path = []
+
+    def update_search_path(self, search_path):
+        self.search_path = search_path
+
+    def create_template(self, source = None, filename = None):
+        if source is None and filename is not None:
+            if os.path.isabs(filename):
+                try:
+                    source = file(filename, 'rb').read()
+                except IOError:
+                    pass
+            else:
+                for search_path in self.search_path:
+                    try:
+                        source = file(os.path.join(search_path, filename), 'rb').read()
+                    except IOError:
+                        pass
+        if source is None:
+            raise SecantTemplateError()
+
+        return PlainTemplate(source)
+
 template_creators = {'genshi-newtext': GenshiTemplateCreator(cls = genshi.template.NewTextTemplate),
                      'genshi-oldtext': GenshiTemplateCreator(cls = genshi.template.OldTextTemplate),
-                     'genshi-markup':  GenshiTemplateCreator(cls = genshi.template.MarkupTemplate)}
+                     'genshi-markup':  GenshiTemplateCreator(cls = genshi.template.MarkupTemplate),
+                     'plain':          PlainTemplateCreator()}
 
 def template_from_element(element):
     global template_creators
-    template_creator_name = element.get('template')
-    if template_creator_name is not None:
-        template_creator = template_creators.get(template_creator_name)
-        if template_creator is not None:
-            log.msg('Using template creator "%s"' % (template_creator_name))
-            filename = element.get('filename')
-            if filename is None:
-                template = template_creator.create_template(source = element.text)
-            else:
-                template = template_creator.create_template(filename = filename)
-            return template
+    template_creator_name = element.get('template', 'plain')
+    template_creator = template_creators.get(template_creator_name)
+    if template_creator is not None:
+        log.msg('Using template creator "%s"' % (template_creator_name))
+        filename = element.get('filename')
+        if filename is None:
+            template = template_creator.create_template(source = element.text)
         else:
-            log.msg('Invalid template creator "%s"' % (template_creator_name))
-            raise SecantTemplateError()
+            template = template_creator.create_template(filename = filename)
+        return template
     else:
-        log.msg('No template type specified, using text of element: "%s"' % element.text)
-        return element.text
-
+        log.msg('Invalid template creator "%s"' % (template_creator_name))
+        raise SecantTemplateError()
