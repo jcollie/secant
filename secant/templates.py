@@ -59,7 +59,7 @@ class PlainTemplate(object):
     def __init__(self, source):
         self.source = source
 
-    def __init__(self, *a, **kw):
+    def render(self, *a, **kw):
         return self.source
 
 class PlainTemplateCreator(object):
