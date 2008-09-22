@@ -27,7 +27,7 @@ from secant import config
 from secant import users
 from secant import clients
 
-__all__ = ['tacacs', 'clients', 'config', 'users', 'test', 'TacacsProtocol']
+__all__ = ['tacacs', 'clients', 'config', 'users', 'templates', 'test', 'TacacsProtocol']
 
 class SessionHandler:
     def __init__(self, client, session_id):
