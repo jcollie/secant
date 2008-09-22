@@ -286,7 +286,7 @@ class TacacsProtocol(Protocol):
             self.buffer = self.buffer[12:]
             
             # Start a generic request packet using the header.
-            self.request = tacacs.Packet(self.client.get_secret())
+            self.request = tacacs.Packet(self.client.get_secret().render())
             self.request.set_header(request_header)
 
             log.msg('Header received, need %i bytes for the body.' % self.request.length)
