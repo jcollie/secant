@@ -40,7 +40,7 @@ class GenshiTemplateCreator(object):
                                                      default_class = cls,
                                                      auto_reload = False)
 
-    def update_search_path(self, search_paths):
+    def update_search_path(self, search_path):
         self.loader.search_path = search_path
 
     def create_template(self, source = None, filename = None):
