@@ -64,7 +64,7 @@ class User:
 
 class AlwaysFailUser(User):
     def __init__(self, username):
-        User.__init__(self, None, {})
+        User.__init__(self, None)
 
     def check_password(self, password_type, supplied_password):
         return False
