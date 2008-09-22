@@ -17,13 +17,42 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 -->
-<config>
-  <paths>
-    <clients>clients.xml</clients>
-    <users>users.xml</users>
-  </paths>
+<config xmlns:xi="http://www.w3.org/2001/XInclude">
+  <config-files>
+    <clients>
+      <path>./clients.xml</path>
+      <path>/etc/secant/clients.xml</path>
+    </clients>
+    <users>
+      <path>./users.xml</path>
+      <path>/etc/secant/users.xml</path>
+    </users>
+  </config-files>
+  <template-search-paths>
+    <genshi-newtext>
+      <path>.</path>
+      <path>/etc/secant</path>
+    </genshi-newtext>
+  </template-search-paths>
   <globals>
     <client_secret>secret</client_secret>
     <enable_password>enable</enable_password>
   </globals>
+  <messages>
+    <banner template="genshi-newtext"><xi:include parse="text" href="banner.txt"/></banner>
+    <authentication-success template="genshi-newtext">Welcome ${user.username} from ${session.rem_addr}!</authentication-success>
+    <authentication-success-enable template="genshi-newtext">
+Welcome ${user.username} from ${session.rem_addr}!</authentication-success-enable>
+  </messages>
+  <log-formats>
+    <authentication-start template="genshi-newtext" filename="authentication-start.txt"/>
+    <authentication-continue template="genshi-newtext" filename="authentication-continue.txt"/>
+    <authorization template="genshi-newtext" filename="authorization.txt"/>
+    <accounting template="genshi-newtext" filename="accounting.txt"/>
+  </log-formats>
+  <prompts>
+    <username>Username: </username>
+    <password>Password: </password>
+    <enable>Enable: </enable>
+  </prompts>
 </config>

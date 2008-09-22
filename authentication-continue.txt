@@ -1,0 +1,14 @@
+{% python
+from secant import tacacs
+%}\
+
+Authentication Continue
+        session_id           = ${session.session_id}
+	authentication_flags = ${request.authentication_flags}
+{% for flag in map(lambda power: pow(2, power), range(0,8)) %}\
+{% if request.authentication_flags & flag %}\
+			${request.authentication_flags & flag} (${tacacs.continue_flag_map.get(request.authentication_flags & flag, '*** UNKNOWN ***')})
+{% end %}\
+{% end %}\
+	user_msg             = "${request.user_msg}"
+	data                 = "${request.data}"

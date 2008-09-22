@@ -1,0 +1,17 @@
+{% python
+from secant import tacacs
+%}\
+
+Authorization
+        session_id     = ${session.session_id}
+	authen_method  = ${request.authen_method} (${tacacs.authen_meth_map.get(request.authen_method, '*** UNKNOWN ***')})
+	priv_lvl       = ${request.priv_lvl} (${tacacs.priv_lvl_map.get(request.priv_lvl, '*** UNKNOWN ***')})
+	authen_type    = ${request.authen_type} (${tacacs.authen_type_map.get(request.authen_type, '*** UNKNOWN ***')})
+	authen_service = ${request.authen_service} (${tacacs.authen_svc_map.get(request.authen_service, '*** UNKNOWN ***')})
+	user           = "${request.user}"
+	port           = "${request.port}"
+	rem_addr       = "${request.rem_addr}"
+	aguments       =
+{% for arg in request.args %}\
+		"${str(arg)}"
+{% end %}\

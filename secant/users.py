@@ -26,31 +26,59 @@ import os
 users = {}
 
 class User:
-    def __init__(self, username, login_password = None, enable_password = None):
+    def __init__(self, username, passwords = {}, messages = {}):
         self.username = username
-        self.login_password = login_password
-        self.enable_password = enable_password
+        self.passwords = passwords
+        self.messages = messages
 
-    def check_login_password(self, password):
-        return self.login_password == password
-
-    def check_enable_password(self, password):
-        if self.enable_password is None:
-            if config.globals.has_key('enable_password'):
-                return config.globals['enable_password'] == password
-
+    def check_password(self, password_type, supplied_password):
+        log.msg('Checking password: "%s" "%s" "%s"' % (self.username, password_type, supplied_password))
+        if password_type is None:
             return False
+        my_password = self.passwords.get(password_type)
+        if my_password is None and password_type == 'enable':
+            my_password = config.globals['enable_password']
+        if my_password is None:
+            return False
+        return my_password == supplied_password
 
+    def get_authentication_message(self, authentication_successful, password_type):
+        if authentication_successful:
+            message_name_base = 'authentication-success'
         else:
-            return self.enable_password == password
+            message_name_base = 'authentication-failure'
+
+        message_names = [message_name_base]
+        
+        if password_type is not None:
+            message_names.insert(0, message_name_base + '-' + password_type)
+
+        for message_name in message_names:
+            message = self.messages.get(message_name)
+            if message is None:
+                message = config.messages.get(message_name)
+            if message is not None:
+                return message
+
+        return ''
+
+class AlwaysFailUser(User):
+    def __init__(self, username):
+        User.__init__(self, None, {})
+
+    def check_password(self, password_type, supplied_password):
+        return False
 
 def find_user(username):
     global users
+    global always_fail_user
 
-    if users.has_key(username):
+    if username in users:
         return users[username]
 
-    return None
+    user = AlwaysFailUser(username)
+    users[username] = user
+    return user
 
 def load_users():
     global users
@@ -64,19 +92,19 @@ def load_users():
             for user_element in user_elements:
                 username = str(user_element.xpath('username/text()')[0])
 
-                try:
-                    login_password = str(user_element.xpath('authentication/password[@type="login"]/text()')[0])
-                except IndexError:
-                    login_password = None
+                passwords = {}
+                password_elements = user_element.xpath('authentication/password')
+                for password_element in password_elements:
+                    password_type = password_element.get('type')
+                    passwords[password_type] = password_element.text
 
-                try:
-                    enable_password = str(user_element.xpath('authentication/password[@type="enable"]/text()')[0])
-                except IndexError:
-                    enable_password = None
+                messages = {}
+                message_elements = user_element.xpath('messages/*')
+                for message_element in message_elements:
+                    message_name = message_element.tag
+                    messages[message_name] = templates.template_from_element(message_element)
 
-                users[username] = User(username,
-                                       login_password = login_password,
-                                       enable_password = enable_password)
+                users[username] = User(username, passwords, messages)
 
             log.msg('Loaded users from "%s"' % os.path.realpath(users_path))
 

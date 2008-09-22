@@ -22,13 +22,22 @@ from lxml import etree
 from twisted.python import log
 import os
 
+from secant import templates
+
 default_paths = {'users': ['./users.xml', '/etc/secant/users.xml'],
-                 'clients': ['./clients.xml', '/etc/secant/clients.xml']}
+                 'clients': ['./clients.xml', '/etc/secant/clients.xml'],
+                 'genshi_templates': ['.', '/etc/secant']}
 
 paths = {}
 
 globals = {'enable_password': None,
            'client_secret': None}
+
+messages = {'banner': None}
+prompts = {'username': 'Username: ',
+           'password': 'Password: '}
+
+log_formats = {}
 
 def load_config(config_paths=[]):
     global paths
@@ -41,17 +50,51 @@ def load_config(config_paths=[]):
     for config_path in config_paths:
         try:
             config_tree = etree.parse(config_path)
+            config_tree.xinclude()
 
-            path_elements = config_tree.xpath('/config/paths/*')
+            config_file_elements = config_tree.xpath('/config/config-files/*')
 
-            for path_element in path_elements:
-                paths.setdefault(path_element.tag, []).append(path_element.text.strip())
+            for config_file_element in config_file_elements:
+                config_file_type = config_file_element.tag
+                path_text_elements = config_file_element.xpath('path/text()')
+                paths[config_file_type] = map(lambda path: str(path).strip(), path_text_elements)
+
+            template_search_path_elements = config_tree.xpath('/config/template-search-paths/*')
+            
+            for template_search_path_element in template_search_path_elements:
+                template_creator_name = template_search_path_element.tag
+                template_search_path = map(lambda path: str(path).strip(),
+                                           template_search_path_element.xpath('path/text()'))
+                template_creator = templates.template_creators.get(template_creator_name)
+                if template_creator is not None:
+                    template_creator.update_search_path(template_search_path)
+                else:
+                    log.msg('Unknown template creator "%s"' % template_creator_name)
 
             global_elements = config_tree.xpath('/config/globals/*')
 
             for global_element in global_elements:
-                globals[global_element.tag] = global_element.text.strip()
+                global_name = global_element.tag
+                globals[global_name] = templates.template_from_element(global_element)
 
+            message_elements = config_tree.xpath('/config/messages/*')
+
+            for message_element in message_elements:
+                message_name = message_element.tag
+                messages[message_name] = templates.template_from_element(message_element)
+
+            prompt_elements = config_tree.xpath('/config/prompts/*')
+
+            for prompt_element in prompt_elements:
+                prompt_name = prompt_element.tag
+                prompts[prompt_name] = templates.template_from_element(prompt_element)
+
+            log_format_elements = config_tree.xpath('/config/log-formats/*')
+
+            for log_format_element in log_format_elements:
+                log_format_name = log_format_element.tag
+                log_formats[log_format_name] = templates.template_from_element(log_format_element)
+                
             log.msg('Loaded configuration from "%s"' % os.path.realpath(config_path))
 
             break
