@@ -610,6 +610,44 @@ class AccountingRequest(Packet):
             self.args.append(Argument(self.plaintext_body[index:index+arg_length]))
             index += arg_length
 
+    def pack_body(self):
+        if not isinstance(self.user, unicode):
+            raise PacketError('user must be a unicode string')
+        if not isinstance(self.port, unicode):
+            raise PacketError('port must be a unicode string')
+        if not isinstance(self.rem_addr, unicode):
+            raise PacketError('rem_addr must be a unicode string')
+
+        user = self.user.encode('ascii')
+        port = self.port.encode('ascii')
+        rem_addr = self.rem_addr.encode('ascii')
+
+        body = struct.pack('!BBBBBBBBB',
+                           self.accounting_flags,
+                           self.authen_method,
+                           self.priv_lvl,
+                           self.authen_type,
+                           self.authen_service,
+                           len(user),
+                           len(port),
+                           len(rem_addr),
+                           len(self.args))
+
+        body += user
+        body += port
+        body += rem_addr
+
+        body += ''.join(map(lambda arg: chr(len(arg)), self.args))
+
+        body += server_msg
+        body += self.data
+
+        for arg in self.args:
+            body += str(arg)
+
+        self.plaintext_body = body
+        self.length = len(self.plaintext_body)
+
     def get_reply(self):
         return AccountingReply(reply_to=self)
 
