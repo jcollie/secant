@@ -19,6 +19,7 @@
 
 from twisted.internet.protocol import Protocol
 from twisted.internet.address import IPv4Address
+from twisted.internet.error import ConnectionDone
 from twisted.python import log
 
 from secant import packet
@@ -117,4 +118,7 @@ class TacacsProtocol(Protocol):
             self.request = None
 
     def connectionLost(self, reason):
-        log.msg('Connection lost: %s' % reason)
+        if not isinstance(reason.value, ConnectionDone):
+            log.msg('Connection lost: %s' % reason.value)
+        else:
+            log.msg('Connection closed cleanly.')
