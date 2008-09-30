@@ -21,7 +21,7 @@ from twisted.internet.protocol import Protocol
 from twisted.internet.address import IPv4Address
 from twisted.python import log
 
-from secant import tacacs
+from secant import packet
 from secant import config
 from secant import users
 from secant import clients
@@ -29,7 +29,7 @@ from secant.session import authentication
 from secant.session import authorization
 from secant.session import accounting
 
-__all__ = ['tacacs', 'clients', 'config', 'users', 'templates', 'session', 'test', 'TacacsProtocol']
+__all__ = ['packet', 'clients', 'config', 'users', 'templates', 'session', 'test', 'TacacsProtocol']
 
 class TacacsProtocol(Protocol):
     def __init__(self):
@@ -63,7 +63,7 @@ class TacacsProtocol(Protocol):
             self.buffer = self.buffer[12:]
             
             # Start a generic request packet using the header.
-            self.request = tacacs.Packet(self.client.get_secret().render())
+            self.request = packet.Packet(self.client.get_secret().render())
             self.request.set_header(request_header)
 
             log.msg('Header received, need %i bytes for the body.' % self.request.length)
@@ -87,15 +87,15 @@ class TacacsProtocol(Protocol):
 
             else:
                 # No, create a new session handler based upon the request type.
-                if self.request.packet_type == tacacs.TAC_PLUS_AUTHEN:
+                if self.request.packet_type == packet.TAC_PLUS_AUTHEN:
                     log.msg('New authentication session.')
                     handler = authentication.AuthenticationSessionHandler(self.client, self.request.session_id)
 
-                elif self.request.packet_type == tacacs.TAC_PLUS_AUTHOR:
+                elif self.request.packet_type == packet.TAC_PLUS_AUTHOR:
                     log.msg('New authorization session.')
                     handler = authorization.AuthorizationSessionHandler(self.client, self.request.session_id)
 
-                elif self.request.packet_type == tacacs.TAC_PLUS_ACCT:
+                elif self.request.packet_type == packet.TAC_PLUS_ACCT:
                     log.msg('New accounting session.')
                     handler = accounting.AccountingSessionHandler(self.client, self.request.session_id)
 
@@ -108,8 +108,8 @@ class TacacsProtocol(Protocol):
 
             # If the handler returns a reply, send the reply back to the client.
             if reply != None:
-                if self.request.header_flags & tacacs.TAC_PLUS_SINGLE_CONNECT_FLAG:
-                    reply.header_flags |= tacacs.TAC_PLUS_SINGLE_CONNECT_FLAG
+                if self.request.header_flags & packet.TAC_PLUS_SINGLE_CONNECT_FLAG:
+                    reply.header_flags |= packet.TAC_PLUS_SINGLE_CONNECT_FLAG
                 log.msg('Sending reply.')
                 self.transport.write(reply.pack())
 

@@ -21,20 +21,20 @@ from twisted.python import log
 
 from secant import config
 from secant import session
-from secant import tacacs
+from secant import packet
 
 class AccountingSessionHandler(session.SessionHandler):
     def __init__(self, client, session_id):
         session.SessionHandler.__init__(self, client, session_id)
     
     def process_request(self, request):
-        request = tacacs.AccountingRequest(copy_of=request)
+        request = packet.AccountingRequest(copy_of=request)
 
         log_message = config.log_formats.get('accounting')
         if log_message is not None:
             log.msg(log_message.render(session = self, request = request))
         
         reply = request.get_reply()
-        reply.accounting_status = tacacs.TAC_PLUS_ACCT_STATUS_SUCCESS
+        reply.accounting_status = packet.TAC_PLUS_ACCT_STATUS_SUCCESS
 
         return reply

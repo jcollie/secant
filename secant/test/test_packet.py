@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
-from secant.tacacs import *
+from secant.packet import *
 
 class TestArgument:
     def test_1(self):

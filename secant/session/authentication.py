@@ -20,7 +20,7 @@
 from twisted.python import log
 
 from secant import session
-from secant import tacacs
+from secant import packet
 from secant import config
 from secant import users
 
@@ -44,7 +44,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
     
     def process_request(self, request):
         if self.start:
-            request = tacacs.AuthenticationStart(copy_of=request)
+            request = packet.AuthenticationStart(copy_of=request)
 
             log_message = config.log_formats.get('authentication-start')
             if log_message is not None:
@@ -59,16 +59,16 @@ class AuthenticationSessionHandler(session.SessionHandler):
             self.rem_addr = request.rem_addr
             self.data = request.data
 
-            if self.action != tacacs.TAC_PLUS_AUTHEN_LOGIN:
+            if self.action != packet.TAC_PLUS_AUTHEN_LOGIN:
                 reply = request.get_reply()
-                reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_ERROR
+                reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_ERROR
                 reply.user_msg = u'Only LOGIN authentication action is supported.'
                 reply.data = ''
                 return reply
 
-            if self.authen_type != tacacs.TAC_PLUS_AUTHEN_TYPE_ASCII:
+            if self.authen_type != packet.TAC_PLUS_AUTHEN_TYPE_ASCII:
                 reply = request.get_reply()
-                reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_ERROR
+                reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_ERROR
                 reply.user_msg = u'Only ASCII authentication type is supported.'
                 reply.data = ''
                 return reply
@@ -76,13 +76,13 @@ class AuthenticationSessionHandler(session.SessionHandler):
             self.start = False
         
         else:
-            request = tacacs.AuthenticationContinue(copy_of=request)
+            request = packet.AuthenticationContinue(copy_of=request)
 
             log_message = config.log_formats.get('authentication-continue')
             if log_message is not None:
                 log.msg(log_message.render(session = self, request = request))
 
-            if request.authentication_flags & tacacs.TAC_PLUS_CONTINUE_FLAG_ABORT:
+            if request.authentication_flags & packet.TAC_PLUS_CONTINUE_FLAG_ABORT:
                 log.msg('Remote requested abort!')
                 self.reset()
                 return None
@@ -95,7 +95,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
 
             else:
                 reply = request.get_reply()
-                reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_ERROR
+                reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_ERROR
                 reply.authentication_flags = 0
                 reply.server_msg = u'Already have username and password!'
                 reply.data = ''
@@ -105,7 +105,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
 
         if self.username == u'':
             log.msg('Requesting username...')
-            reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_GETUSER
+            reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_GETUSER
             reply.authentication_flags = 0
             reply.server_msg = u''
 
@@ -126,15 +126,15 @@ class AuthenticationSessionHandler(session.SessionHandler):
 
         elif self.password == u'':
             log.msg('Requesting password...')
-            reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_GETPASS
-            reply.authentication_flags = tacacs.TAC_PLUS_REPLY_FLAG_NOECHO
+            reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_GETPASS
+            reply.authentication_flags = packet.TAC_PLUS_REPLY_FLAG_NOECHO
 
-            if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_LOGIN:
+            if self.service == packet.TAC_PLUS_AUTHEN_SVC_LOGIN:
                 password_prompt = self.client.get_prompt('password')
                 if password_prompt is None:
                     password_prompt = u'Password: '
 
-            elif self.service == tacacs.TAC_PLUS_AUTHEN_SVC_ENABLE:
+            elif self.service == packet.TAC_PLUS_AUTHEN_SVC_ENABLE:
                 password_prompt = self.client.get_prompt('enable')
                 if password_prompt is None:
                     password_prompt = u'Enable: '
@@ -155,10 +155,10 @@ class AuthenticationSessionHandler(session.SessionHandler):
         else:
             user = users.find_user(self.username)
 
-            if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_LOGIN:
+            if self.service == packet.TAC_PLUS_AUTHEN_SVC_LOGIN:
                 password_type = 'login'
 
-            elif self.service == tacacs.TAC_PLUS_AUTHEN_SVC_ENABLE:
+            elif self.service == packet.TAC_PLUS_AUTHEN_SVC_ENABLE:
                 password_type = 'enable'
 
             else:
@@ -169,11 +169,11 @@ class AuthenticationSessionHandler(session.SessionHandler):
 
             if authentication_successful:
                 log.msg('Authentication successful!')
-                reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_PASS
+                reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_PASS
 
             else:
                 log.msg('Authentication failed!')
-                reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_FAIL
+                reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_FAIL
 
             message = user.get_authentication_message(authentication_successful, password_type)
 
