@@ -48,17 +48,17 @@ class AuthorizationSessionHandler(session.SessionHandler):
         cmd_arg = []
         
         for arg in request.args:
-            if arg.key == 'service':
+            if arg.key == u'service':
                 service = arg.value
-            if arg.key == 'cmd':
+            if arg.key == u'cmd':
                 cmd = arg.value
-            if arg.key == 'cmd-arg':
+            if arg.key == u'cmd-arg':
                 cmd_arg.append(arg.value)
 
         if service == 'shell' and cmd == '':
-            reply.server_msg = 'Shell request granted!'
+            reply.server_msg = u'Shell request granted!'
             #reply.args.append(tacacs.Argument('priv-lvl=15'))
         else:
-            reply.server_msg = 'Other request granted!'
+            reply.server_msg = u'Other request granted!'
             
         return reply

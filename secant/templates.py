@@ -30,7 +30,8 @@ class GenshiTemplate(object):
         self.template = template
 
     def render(self, *a, **kw):
-        return self.template.generate(*a, **kw).render()
+        result = self.template.generate(*a, **kw).render(encoding=None)
+        return result
 
 class GenshiTemplateCreator(object):
     def __init__(self, cls):
@@ -73,15 +74,16 @@ class PlainTemplateCreator(object):
         if source is None and filename is not None:
             if os.path.isabs(filename):
                 try:
-                    source = file(filename, 'rb').read()
+                    source = file(filename, 'rb').read().decode('utf-8')
                 except IOError:
                     pass
             else:
                 for search_path in self.search_path:
                     try:
-                        source = file(os.path.join(search_path, filename), 'rb').read()
+                        source = file(os.path.join(search_path, filename), 'rb').read().decode('utf-8')
                     except IOError:
                         pass
+        assert isinstance(source, unicode)
         if source is None:
             raise SecantTemplateError()
 
@@ -100,7 +102,8 @@ def template_from_element(element):
         log.msg('Using template creator "%s"' % (template_creator_name))
         filename = element.get('filename')
         if filename is None:
-            template = template_creator.create_template(source = element.text)
+            text = element.xpath('text()')[0].decode()
+            template = template_creator.create_template(source = text)
         else:
             template = template_creator.create_template(filename = filename)
         return template

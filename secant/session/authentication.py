@@ -32,8 +32,8 @@ class AuthenticationSessionHandler(session.SessionHandler):
 
     def reset(self):
         self.start = True
-        self.username = ''
-        self.password = ''
+        self.username = u''
+        self.password = u''
         self.action = -1
         self.priv_lvl = -1
         self.authen_type = -1
@@ -62,14 +62,14 @@ class AuthenticationSessionHandler(session.SessionHandler):
             if self.action != tacacs.TAC_PLUS_AUTHEN_LOGIN:
                 reply = request.get_reply()
                 reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_ERROR
-                reply.user_msg = 'Only LOGIN authentication action is supported.'
+                reply.user_msg = u'Only LOGIN authentication action is supported.'
                 reply.data = ''
                 return reply
 
             if self.authen_type != tacacs.TAC_PLUS_AUTHEN_TYPE_ASCII:
                 reply = request.get_reply()
                 reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_ERROR
-                reply.user_msg = 'Only ASCII authentication type is supported.'
+                reply.user_msg = u'Only ASCII authentication type is supported.'
                 reply.data = ''
                 return reply
                 
@@ -87,42 +87,44 @@ class AuthenticationSessionHandler(session.SessionHandler):
                 self.reset()
                 return None
 
-            if self.username == '':
+            if self.username == u'':
                 self.username = request.user_msg
 
-            elif self.password == '':
+            elif self.password == u'':
                 self.password = request.user_msg
 
             else:
+                reply = request.get_reply()
                 reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_ERROR
                 reply.authentication_flags = 0
-                reply.server_msg = 'Already have username and password!'
+                reply.server_msg = u'Already have username and password!'
                 reply.data = ''
-                
+                return reply
+
         reply = request.get_reply()
 
-        if self.username == '':
+        if self.username == u'':
             log.msg('Requesting username...')
             reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_GETUSER
             reply.authentication_flags = 0
-            reply.server_msg = ''
+            reply.server_msg = u''
 
             banner = self.client.get_message('banner')
             if not self.banner_shown and banner is not None:
                 reply.server_msg += banner.render(client = self.client, session = self, request = request)
-                reply.server_msg += '\r\n\r\n'
+                reply.server_msg += u'\r\n\r\n'
                 self.banner_shown = True
 
             username_prompt = self.client.get_prompt('username')
             if username_prompt is not None:
                 reply.server_msg += username_prompt.render(client = self.client, session = self, request = request)
             else:
-                reply.server_msg += 'Username: '
+                reply.server_msg += u'Username: '
 
             reply.data = ''
             return reply
 
-        elif self.password == '':
+        elif self.password == u'':
             log.msg('Requesting password...')
             reply.authentication_status = tacacs.TAC_PLUS_AUTHEN_STATUS_GETPASS
             reply.authentication_flags = tacacs.TAC_PLUS_REPLY_FLAG_NOECHO
@@ -130,18 +132,20 @@ class AuthenticationSessionHandler(session.SessionHandler):
             if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_LOGIN:
                 password_prompt = self.client.get_prompt('password')
                 if password_prompt is None:
-                    password_prompt = 'Password: '
+                    password_prompt = u'Password: '
 
             elif self.service == tacacs.TAC_PLUS_AUTHEN_SVC_ENABLE:
                 password_prompt = self.client.get_prompt('enable')
                 if password_prompt is None:
-                    password_prompt = 'Enable: '
+                    password_prompt = u'Enable: '
 
             else:
-                password_prompt = 'Password: '
+                password_prompt = u'Password: '
 
-            if isinstance(password_prompt, basestring):
+            if isinstance(password_prompt, unicode):
                 reply.server_msg = password_prompt
+            elif isinstance(password_prompt, str):
+                reply.server_msg = password_prompt.decode('utf-8')
             else:
                 reply.server_msg = password_prompt.render(client = self.client, session = self, request = request)
 
@@ -150,8 +154,6 @@ class AuthenticationSessionHandler(session.SessionHandler):
 
         else:
             user = users.find_user(self.username)
-
-            message_type_base = 'authentication-failed'
 
             if self.service == tacacs.TAC_PLUS_AUTHEN_SVC_LOGIN:
                 password_type = 'login'
@@ -175,8 +177,10 @@ class AuthenticationSessionHandler(session.SessionHandler):
 
             message = user.get_authentication_message(authentication_successful, password_type)
 
-            if isinstance(message, basestring):
+            if isinstance(message, unicode):
                 reply.server_msg = message
+            if isinstance(message, str):
+                reply.server_msg = message.decode('utf-8')
             else:
                 reply.server_msg = message.render(client = self.client, session = self, request = request, user = user)
 

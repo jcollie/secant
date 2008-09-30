@@ -34,8 +34,8 @@ globals = {'enable_password': None,
            'client_secret': None}
 
 messages = {'banner': None}
-prompts = {'username': 'Username: ',
-           'password': 'Password: '}
+prompts = {'username': u'Username: ',
+           'password': u'Password: '}
 
 log_formats = {}
 

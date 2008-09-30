@@ -124,7 +124,7 @@ TAC_PLUS_ACCT_STATUS_FOLLOW      = 0x21
 
 acct_status_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_ACCT_STATUS')])
 
-class error:
+class PacketError:
     def __init__(self, message):
         self.message = message
 
@@ -276,9 +276,9 @@ class AuthenticationStart(Packet):
         self.priv_lvl = None
         self.authen_type = None
         self.service = None
-        self.user = ''
-        self.port = ''
-        self.rem_addr = ''
+        self.user = u''
+        self.port = u''
+        self.rem_addr = u''
         self.data = ''
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
@@ -301,31 +301,44 @@ class AuthenticationStart(Packet):
 
         index = 8
 
-        self.user = self.plaintext_body[index:index+user_len]
+        self.user = self.plaintext_body[index:index+user_len].decode('ascii')
         index += user_len
 
-        self.port = self.plaintext_body[index:index+port_len]
+        self.port = self.plaintext_body[index:index+port_len].decode('ascii')
         index += port_len
 
-        self.rem_addr = self.plaintext_body[index:index+rem_addr_len]
+        self.rem_addr = self.plaintext_body[index:index+rem_addr_len].decode('ascii')
         index += rem_addr_len
 
         self.data = self.plaintext_body[index:index+data_len]
         index += data_len
 
     def pack_body(self):
+        if isinstance(self.data, unicode):
+            raise PacketError('data must be a plain string')
+        if not isinstance(self.user, unicode):
+            raise PacketError('user must be a unicode string')
+        if not isinstance(self.port, unicode):
+            raise PacketError('port must be a unicode string')
+        if not isinstance(self.rem_addr, unicode):
+            raise PacketError('rem_addr must be a unicode string')
+
+        user = self.user.encode('ascii')
+        port = self.port.encode('ascii')
+        rem_addr = self.rem_addr.encode('ascii')
+
         body = struct.pack('!BBBBBBBB',
                            self.action,
                            self.priv_lvl,
                            self.authen_type,
                            self.service,
-                           len(self.user),
-                           len(self.port),
-                           len(self.rem_addr),
+                           len(user),
+                           len(port),
+                           len(rem_addr),
                            len(self.data))
-        body += self.user
-        body += self.port
-        body += self.rem_addr
+        body += user
+        body += port
+        body += rem_addr
         body += self.data
 
         self.plaintext_body = body
@@ -333,15 +346,14 @@ class AuthenticationStart(Packet):
 
 class AuthenticationReply(Packet):
     def __init__(self, reply_to):
-        if not isinstance(reply_to, (AuthenticationStart, AuthenticationContinue)):
-            raise 'error'
+        assert isinstance(reply_to, (AuthenticationStart, AuthenticationContinue))
 
         Packet.__init__(self, reply_to=reply_to)
 
         self.authentication_status = None
         self.authentication_flags = None
-        self.server_msg = None
-        self.data = None
+        self.server_msg = u''
+        self.data = ''
 
     def unpack_body(self):
         (self.authentication_status,
@@ -351,20 +363,27 @@ class AuthenticationReply(Packet):
 
         index = 6
 
-        self.server_msg = self.plaintext_body[index:index+server_msg_len]
+        self.server_msg = self.plaintext_body[index:index+server_msg_len].decode('ascii')
         index += server_msg_len
 
         self.data = self.plaintext_body[index:index+data_len]
         index += data_len
 
     def pack_body(self):
+        if not isinstance(self.data, str):
+            raise PacketError('data must be a plain string')
+        if not isinstance(self.server_msg, unicode):
+            raise PacketError('server_msg must be a unicode string')
+
+        server_msg = self.server_msg.encode('ascii')
+
         body = struct.pack('!BBHH',
                            self.authentication_status,
                            self.authentication_flags,
-                           len(self.server_msg),
+                           len(server_msg),
                            len(self.data))
 
-        body += self.server_msg
+        body += server_msg
         body += self.data
 
         self.plaintext_body = body
@@ -373,8 +392,8 @@ class AuthenticationReply(Packet):
 class AuthenticationContinue(Packet):
     def __init__(self, secret_key=None, copy_of=None):
         self.authentication_flags = None
-        self.user_msg = None
-        self.data = None
+        self.user_msg = u''
+        self.data = ''
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
 
@@ -386,16 +405,23 @@ class AuthenticationContinue(Packet):
 
         index = 5
 
-        self.user_msg = self.plaintext_body[index:index+user_msg_len]
+        self.user_msg = self.plaintext_body[index:index+user_msg_len].decode('ascii')
         index += user_msg_len
 
         self.data = self.plaintext_body[index:index+data_len]
         index += data_len
 
     def pack_body(self):
-        body = struct.pack('!HHB', len(self.user_msg), len(self.data), self.authentication_flags)
+        if not isinstance(self.data, str):
+            raise PacketError('data must be a plain string')
+        if not isinstance(self.user_msg, unicode):
+            raise PacketError('user_msg must be a unicode string')
 
-        body += self.user_msg
+        user_msg = self.user_msg.encode('ascii')
+
+        body = struct.pack('!HHB', len(user_msg), len(self.data), self.authentication_flags)
+
+        body += user_msg
         body += self.data
 
         self.plaintext_body = body
@@ -408,9 +434,9 @@ class AuthorizationRequest(Packet):
         self.priv_lvl = None
         self.authen_type = None
         self.authen_service = None
-        self.user = ''
-        self.port = ''
-        self.rem_addr = ''
+        self.user = u''
+        self.port = u''
+        self.rem_addr = u''
         self.args = []
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
@@ -430,13 +456,13 @@ class AuthorizationRequest(Packet):
         arg_lengths = map(ord, self.plaintext_body[index:index+arg_cnt])
         index += arg_cnt
 
-        self.user = self.plaintext_body[index:index+user_len]
+        self.user = self.plaintext_body[index:index+user_len].decode('ascii')
         index += user_len
 
-        self.port = self.plaintext_body[index:index+port_len]
+        self.port = self.plaintext_body[index:index+port_len].decode('ascii')
         index += port_len
 
-        self.rem_addr = self.plaintext_body[index:index+rem_addr_len]
+        self.rem_addr = self.plaintext_body[index:index+rem_addr_len].decode('ascii')
         index += rem_addr_len
 
         self.args = []
@@ -445,14 +471,25 @@ class AuthorizationRequest(Packet):
             index += arg_length
 
     def pack_body(self):
+        if not isinstance(self.user, unicode):
+            raise PacketError('user must be a unicode string')
+        if not isinstance(self.port, unicode):
+            raise PacketError('port must be a unicode string')
+        if not isinstance(self.rem_addr, unicode):
+            raise PacketError('rem_addr must be a unicode string')
+
+        user = self.user.encode('ascii')
+        port = self.port.encode('ascii')
+        rem_addr = self.rem_addr.encode('ascii')
+
         body = struct.pack('!BBBBBBBB',
                            self.authen_method,
                            self.priv_lvl,
                            self.authen_type,
                            self.authen_service,
-                           len(self.user),
-                           len(self.port),
-                           len(self.rem_addr),
+                           len(user),
+                           len(port),
+                           len(rem_addr),
                            len(self.args))
 
         body += ''.join(map(lambda arg: chr(len(arg)), args))
@@ -476,7 +513,7 @@ class AuthorizationResponse(Packet):
 
         self.authorization_status = None
         self.args = []
-        self.server_msg = ''
+        self.server_msg = u''
         self.data = ''
 
         Packet.__init__(self, reply_to=reply_to)
@@ -492,7 +529,7 @@ class AuthorizationResponse(Packet):
         arg_lengths = map(ord, self.plaintext_body[index:index+arg_cnt])
         index += arg_cnt
 
-        self.server_msg = self.plaintext_body[index:index+server_msg_len]
+        self.server_msg = self.plaintext_body[index:index+server_msg_len].decode('ascii')
         index += server_msg_len
 
         self.data = self.plaintext_body[index:index+data_len]
@@ -504,16 +541,23 @@ class AuthorizationResponse(Packet):
             index += arg_length
 
     def pack_body(self):
+        if not isinstance(self.data, str):
+            raise PacketError('data must be a plain string')
+        if not isinstance(self.server_msg, unicode):
+            raise PacketError('user must be a unicode string')
+
+        server_msg = self.server_msg.encode('ascii')
+
         body = struct.pack('!BBHH',
                            self.authorization_status,
                            len(self.args),
-                           len(self.server_msg),
+                           len(server_msg),
                            len(self.data))
 
 
         body += ''.join(map(lambda arg: chr(len(arg)), self.args))
 
-        body += self.server_msg
+        body += server_msg
         body += self.data
 
         for arg in self.args:
@@ -529,9 +573,9 @@ class AccountingRequest(Packet):
         self.priv_lvl = None
         self.authen_type = None
         self.authen_service = None
-        self.user = None
-        self.port = None
-        self.rem_addr = None
+        self.user = u''
+        self.port = u''
+        self.rem_addr = u''
         self.args = []
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
@@ -552,13 +596,13 @@ class AccountingRequest(Packet):
         arg_lengths = map(ord, self.plaintext_body[index:index+arg_cnt])
         index += arg_cnt
 
-        self.user = self.plaintext_body[index:index+user_len]
+        self.user = self.plaintext_body[index:index+user_len].decode('ascii')
         index += user_len
 
-        self.port = self.plaintext_body[index:index+port_len]
+        self.port = self.plaintext_body[index:index+port_len].decode('ascii')
         index += port_len
 
-        self.rem_addr = self.plaintext_body[index:index+rem_addr_len]
+        self.rem_addr = self.plaintext_body[index:index+rem_addr_len].decode('ascii')
         index += rem_addr_len
 
         self.args = []
@@ -571,11 +615,10 @@ class AccountingRequest(Packet):
 
 class AccountingReply(Packet):
     def __init__(self, reply_to):
-        if not isinstance(reply_to, AccountingRequest):
-            raise 'error'
+        assert isinstance(reply_to, AccountingRequest)
 
         self.accounting_status = None
-        self.server_msg = ''
+        self.server_msg = u''
         self.data = ''
 
         Packet.__init__(self, reply_to=reply_to)
@@ -585,19 +628,26 @@ class AccountingReply(Packet):
 
         index = 5
 
-        self.server_msg = self.plaintext_body[index:index + server_msg_len]
+        self.server_msg = self.plaintext_body[index:index + server_msg_len].decode('ascii')
         index += server_msg_len
 
         self.data = self.plaintext_body[index:index + data_len]
         index += data_len
 
     def pack_body(self):
+        if not isinstance(self.data, str):
+            raise PacketError('data must be a plain string')
+        if not isinstance(self.server_msg, unicode):
+            raise PacketError('user must be a unicode string')
+
+        server_msg = self.server_msg.encode('ascii')
+
         body = struct.pack('!HHB',
-                           len(self.server_msg),
+                           len(server_msg),
                            len(self.data),
                            self.accounting_status)
 
-        body += self.server_msg
+        body += server_msg
         body += self.data
 
         self.plaintext_body = body

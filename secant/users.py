@@ -60,7 +60,7 @@ class User:
             if message is not None:
                 return message
 
-        return ''
+        return u''
 
 class AlwaysFailUser(User):
     def __init__(self, username):
@@ -96,7 +96,7 @@ def load_users():
                 password_elements = user_element.xpath('authentication/password')
                 for password_element in password_elements:
                     password_type = password_element.get('type')
-                    passwords[password_type] = password_element.text
+                    passwords[password_type] = password_element.xpath('text()')[0].decode()
 
                 messages = {}
                 message_elements = user_element.xpath('messages/*')
