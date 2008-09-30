@@ -17,7 +17,7 @@ Accounting
 	user             = "${request.user}"
 	port             = "${request.port}"
 	rem_addr         = "${request.rem_addr}"
-	aguments         =
+	arguments        =
 {% for arg in request.args %}\
 		"${str(arg)}"
 {% end %}\
