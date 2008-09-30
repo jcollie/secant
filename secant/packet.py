@@ -132,6 +132,9 @@ argument_re = re.compile(r'^([^=*]+)([=*])(.*)$')
 
 class Argument:
     def __init__(self, argument):
+        if isinstance(argument, str):
+            argument = argument.decode('ascii')
+
         self.key = None
         self.value = None
         self.is_optional = None
@@ -142,19 +145,25 @@ class Argument:
             self.is_optional = argument_match.group(2) == '*'
 
     def __str__(self):
+        key = self.key.encode('ascii')
+        value = self.value.encode('ascii')
         if self.is_optional:
-            return '%s*%s' % (self.key, self.value)
+            return '%s*%s' % (key, value)
         else:
-            return '%s=%s' % (self.key, self.value)
+            return '%s=%s' % (key, value)
 
     def __repr__(self):
+        key = self.key.encode('ascii')
+        value = self.value.encode('ascii')
         if self.is_optional:
-            return `'%s*%s' % (self.key, self.value)`
+            return `'%s*%s' % (key, value)`
         else:
-            return `'%s=%s' % (self.key, self.value)`
+            return `'%s=%s' % (key, value)`
 
     def __len__(self):
-        return len(self.key) + len(self.value) + 1
+        key = self.key.encode('ascii')
+        value = self.value.encode('ascii')
+        return len(key) + len(value) + 1
 
 def generate_pseudo_pad(header, secret_key):
     """Generate pseudo pad that is used to encrypt the packet body.
