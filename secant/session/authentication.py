@@ -179,7 +179,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
 
             if isinstance(message, unicode):
                 reply.server_msg = message
-            if isinstance(message, str):
+            elif isinstance(message, str):
                 reply.server_msg = message.decode('utf-8')
             else:
                 reply.server_msg = message.render(client = self.client, session = self, request = request, user = user)
