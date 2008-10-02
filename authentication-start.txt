@@ -1,13 +1,13 @@
 {% python
-from secant import tacacs
+from secant import packet
 %}\
 
 Authentication Start
         session_id  = ${session.session_id}
-	action      = ${request.action} (${tacacs.authen_action_map.get(request.action, '*** UNKNOWN ***')})
-	priv_lvl    = ${request.priv_lvl} (${tacacs.priv_lvl_map.get(request.priv_lvl, '*** UNKNOWN ***')})
-	authen_type = ${request.authen_type} (${tacacs.authen_type_map.get(request.authen_type, '*** UNKNOWN ***')})
-	service     = ${request.service} (${tacacs.authen_svc_map.get(request.service, '*** UNKNOWN ***')})
+	action      = ${request.action} (${packet.authen_action_map.get(request.action, '*** UNKNOWN ***')})
+	priv_lvl    = ${request.priv_lvl} (${packet.priv_lvl_map.get(request.priv_lvl, '*** UNKNOWN ***')})
+	authen_type = ${request.authen_type} (${packet.authen_type_map.get(request.authen_type, '*** UNKNOWN ***')})
+	service     = ${request.service} (${packet.authen_svc_map.get(request.service, '*** UNKNOWN ***')})
 	user        = "${request.user}"
 	port        = "${request.port}"
 	rem_addr    = "${request.rem_addr}"
