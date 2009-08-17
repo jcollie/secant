@@ -37,9 +37,11 @@ class User:
             return False
         my_password = self.passwords.get(password_type)
         if my_password is None and password_type == 'enable':
-            my_password = config.globals['enable_password']
+            my_password = config.globals['enable_password'].render()
+            log.msg('Getting global enable password: "%s"' % (my_password,))
         if my_password is None:
             return False
+        log.msg('Checking against password: "%s"' % (my_password,))
         return my_password == supplied_password
 
     def get_authentication_message(self, authentication_successful, password_type):
