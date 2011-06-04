@@ -46,8 +46,6 @@ class SecantServiceMaker(object):
 
     def makeService(self, options):
         config.load_config(options['config_paths'])
-        users.load_users()
-        clients.load_clients()
 
         factory = Factory()
         factory.protocol = TacacsProtocol

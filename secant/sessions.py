@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- mode: python; coding: utf-8 -*-
 
-# Copyright © 2008 by Jeffrey C. Ollie
+# Copyright © 2008,2010 by Jeffrey C. Ollie
 #
 # This file is part of Secant.
 #
@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from twisted.python import log
 from twisted.internet import defer
 
@@ -30,37 +29,11 @@ from secant import templates
 
 import paisley
 
-class Client:
-    def __init__(self,
-                 address,
-                 secret = None,
-                 description = None,
-                 messages = {},
-                 prompts = {}):
+sessions = {}
 
-        self.address = address
-        self.secret = secret
-        self.description = description
-        self.messages = messages
-        self.prompts = prompts
-
-    def get_secret(self):
-        if self.secret is None:
-            return config.globals['client_secret']
-        else:
-            return self.secret
-
-    def get_message(self, message_type):
-        message = self.messages.get(message_type)
-        if message is None:
-            return config.messages.get(message_type)
-        return message
-
-    def get_prompt(self, prompt_type):
-        prompt = self.prompts.get(prompt_type)
-        if prompt is None:
-            return config.prompts.get(prompt_type)
-        return prompt
+class Session:
+    def __init__(self):
+        pass
 
 class find_client(defer.Deferred):
     def __init__(self, address):
@@ -76,13 +49,15 @@ class find_client(defer.Deferred):
                 break
             network = network.supernet().masked()
 
-        query_deferred = self.server.openView('clients', 'clients_by_address', 'clients_by_address', keys = keys)
-        query_deferred.addCallback(self.parseResult)
-        query_deferred.addErrback(self.errback)
+        self.query = self.server.openView('clients', 'clients_by_address', 'clients_by_address', keys = keys)
+        self.query.addCallback(self.parseResult)
+        self.query.addErrback(self.testErr)
 
     def parseResult(self, result):
         if len(result['rows']) == 0:
-            self.errback('Couldn\'t find a matching client entry in the database!')
+            log.msg('Creating a fake client for address %s' % self.address)
+            client = Client(self.address)
+            self.callback(client)
 
         else:
             if len(result['rows']) == 1:
@@ -96,3 +71,6 @@ class find_client(defer.Deferred):
                             messages = result['rows'][0]['value'].get('messages', {}),
                             prompts = result['rows'][0]['value'].get('prompts', {}))
             self.callback(client)
+
+    def testErr(self, failure):
+        print 'testErr', failure

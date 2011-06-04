@@ -1,6 +1,6 @@
 # -*- mode: python; coding: utf-8 -*-
 
-# Copyright © 2008 by Jeffrey C. Ollie
+# Copyright © 2008,2010 by Jeffrey C. Ollie
 #
 # This file is part of Secant.
 #
@@ -27,3 +27,4 @@ class SessionHandler:
 
     def process_request(self, request):
         pass
+

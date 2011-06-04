@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- mode: python; coding: utf-8 -*-
 
-# Copyright © 2008 by Jeffrey C. Ollie
+# Copyright © 2008,2010 by Jeffrey C. Ollie
 #
 # This file is part of Secant.
 #
@@ -19,30 +19,86 @@
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
 from secant import config
-from lxml import etree
-from twisted.python import log
-import os
 
-users = {}
+from twisted.python import log
+from twisted.internet import defer
+from twisted.web import error
+
+import os
+import time
+
+import paisley
 
 class User:
-    def __init__(self, username, passwords = {}, messages = {}):
+    def __init__(self, username, passwords = {}, messages = {}, authorization_rules = []):
         self.username = username
         self.passwords = passwords
         self.messages = messages
+        self.authorization_rules = authorization_rules
+
+        self.server = paisley.CouchDB('127.0.0.1')
+
+    def log_authentication(self, succeeded, password_type, message):
+
+        doc = {'record_type': 'http://fedorahosted.org/secant/authentication_record',
+               'username': self.username,
+               'succeeded': succeeded,
+               'password_type': password_type,
+               'message': message,
+               'time': time.time()}
+
+        log.msg(message)
+        self.server.saveDoc('secant', doc)
 
     def check_password(self, password_type, supplied_password):
-        log.msg('Checking password: "%s" "%s" "%s"' % (self.username, password_type, supplied_password))
-        if password_type is None:
-            return False
+        log.msg('Checking password type %s for user %s' % (password_type, self.username))
+        if password_type not in ['login', 'enable']:
+            self.log_authentication(False, password_type, 'Authentication failed because password type %s is unsupported.' % (password_type,))
+            return defer.fail(False)
+
+        d = self.server.openView('secant', 'users', 'authentication_failures',
+                                 startkey = [self.username, time.time() - (15 * 60)],
+                                 endkey = [self.username, time.time() + (1 * 60)],
+                                 reduce = True,
+                                 group = True,
+                                 group_level = 1)
+        d.addCallback(self.authenticationFailuresResult, password_type, supplied_password)
+
+        return d
+
+    def authenticationFailuresResult(self, result, password_type, supplied_password):
+    
+        if len(result['rows']) == 1 and result['rows'][0]['key'][0] == self.username:
+            if result['rows'][0]['value'] >= 3:
+                log.msg('Too many failed authentication attempts in the last fifteen minutes!')
+                return defer.fail(False)
+            return self.check_password_final(password_type, supplied_password)
+
+        elif len(result['rows']) >= 1:
+            log.msg('Too many results!')
+            return defer.fail(False)
+
+        else:
+            return self.check_password_final(password_type, supplied_password)
+
+    def check_password_final(self, password_type, supplied_password):
         my_password = self.passwords.get(password_type)
+
         if my_password is None and password_type == 'enable':
             my_password = config.globals['enable_password'].render()
-            log.msg('Getting global enable password: "%s"' % (my_password,))
+            log.msg('Getting global enable password for user %s' % (self.username,))
+
         if my_password is None:
-            return False
-        log.msg('Checking against password: "%s"' % (my_password,))
-        return my_password == supplied_password
+            self.log_authentication(False, password_type, 'Authentication failed because password type %s for user %s can\'t be determined.' % (password_type, self.username))
+            return defer.fail(False)
+
+        if my_password == supplied_password:
+            self.log_authentication(True, password_type, 'Authentication for user %s succeeded.' % (self.username,))
+            return defer.succeed(True)
+
+        else:
+            self.log_authentication(False, password_type, 'Authentication for user %s failed.' % (self.username,))
+            return defer.fail(False)
 
     def get_authentication_message(self, authentication_successful, password_type):
         if authentication_successful:
@@ -64,53 +120,34 @@ class User:
 
         return u''
 
-class AlwaysFailUser(User):
+#class AlwaysFailUser(User):
+#    def __init__(self, username):
+#        User.__init__(self, None)
+#
+#    def check_password(self, password_type, supplied_password):
+#        return defer.fail(False)
+
+class find_user(defer.Deferred):
     def __init__(self, username):
-        User.__init__(self, None)
+        defer.Deferred.__init__(self)
+        self.username = username
 
-    def check_password(self, password_type, supplied_password):
-        return False
+        self.server = paisley.CouchDB('127.0.0.1')
 
-def find_user(username):
-    global users
-    global always_fail_user
+        query = self.server.openView('secant', 'users', 'by_username', keys = [username])
+        query.addCallback(self.parseResult)
+        query.addErrback(self.errback)
 
-    if username in users:
-        return users[username]
+    def parseResult(self, result):
+        if len(result['rows']) == 0:
+            self.errback('User %s not found!' % self.username)
 
-    user = AlwaysFailUser(username)
-    users[username] = user
-    return user
+        elif len(result['rows']) == 1:
+            user = User(username = result['rows'][0]['value'].get('username', None),
+                        passwords = result['rows'][0]['value'].get('passwords', {}),
+                        messages = result['rows'][0]['value'].get('messages', {}),
+                        authorization_rules = result['rows'][0]['value'].get('authorization_rules', []))
+            self.callback(user)
 
-def load_users():
-    global users
-
-    for users_path in config.paths['users']:
-        try:
-            user_tree = etree.parse(users_path)
-
-            user_elements = user_tree.xpath('/users/user')
-
-            for user_element in user_elements:
-                username = str(user_element.xpath('username/text()')[0])
-
-                passwords = {}
-                password_elements = user_element.xpath('authentication/password')
-                for password_element in password_elements:
-                    password_type = password_element.get('type')
-                    passwords[password_type] = password_element.xpath('text()')[0].decode()
-
-                messages = {}
-                message_elements = user_element.xpath('messages/*')
-                for message_element in message_elements:
-                    message_name = message_element.tag
-                    messages[message_name] = templates.template_from_element(message_element)
-
-                users[username] = User(username, passwords, messages)
-
-            log.msg('Loaded users from "%s"' % os.path.realpath(users_path))
-
-            break
-
-        except IOError:
-            log.msg('Unable to load users from "%s"' % users_path)
+        else:
+            self.errback('Too many results!')

@@ -18,6 +18,7 @@
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
 from twisted.python import log
+from twisted.internet import defer
 
 from secant import session
 from secant import packet
@@ -64,14 +65,14 @@ class AuthenticationSessionHandler(session.SessionHandler):
                 reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_ERROR
                 reply.user_msg = u'Only LOGIN authentication action is supported.'
                 reply.data = ''
-                return reply
+                return defer.succeed(reply)
 
             if self.authen_type != packet.TAC_PLUS_AUTHEN_TYPE_ASCII:
                 reply = request.get_reply()
                 reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_ERROR
                 reply.user_msg = u'Only ASCII authentication type is supported.'
                 reply.data = ''
-                return reply
+                return defer.succeed(reply)
                 
             self.start = False
         
@@ -85,7 +86,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
             if request.authentication_flags & packet.TAC_PLUS_CONTINUE_FLAG_ABORT:
                 log.msg('Remote requested abort!')
                 self.reset()
-                return None
+                return defer.succeed(None)
 
             if self.username == u'':
                 self.username = request.user_msg
@@ -99,12 +100,11 @@ class AuthenticationSessionHandler(session.SessionHandler):
                 reply.authentication_flags = 0
                 reply.server_msg = u'Already have username and password!'
                 reply.data = ''
-                return reply
-
-        reply = request.get_reply()
+                return defer.succeed(reply)
 
         if self.username == u'':
             log.msg('Requesting username...')
+            reply = request.get_reply()
             reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_GETUSER
             reply.authentication_flags = 0
             reply.server_msg = u''
@@ -122,10 +122,11 @@ class AuthenticationSessionHandler(session.SessionHandler):
                 reply.server_msg += u'Username: '
 
             reply.data = ''
-            return reply
+            return defer.succeed(reply)
 
         elif self.password == u'':
             log.msg('Requesting password...')
+            reply = request.get_reply()
             reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_GETPASS
             reply.authentication_flags = packet.TAC_PLUS_REPLY_FLAG_NOECHO
 
@@ -150,40 +151,74 @@ class AuthenticationSessionHandler(session.SessionHandler):
                 reply.server_msg = password_prompt.render(client = self.client, session = self, request = request)
 
             reply.data = ''
-            return reply
+            return defer.succeed(reply)
 
         else:
             user = users.find_user(self.username)
+            user.addCallback(self.findUserSucceeded, request)
+            user.addErrback(self.findUserFailed, request)
+            return user
 
-            if self.service == packet.TAC_PLUS_AUTHEN_SVC_LOGIN:
-                password_type = 'login'
+    def findUserSucceeded(self, user, request):
+        if self.service == packet.TAC_PLUS_AUTHEN_SVC_LOGIN:
+            password_type = 'login'
 
-            elif self.service == packet.TAC_PLUS_AUTHEN_SVC_ENABLE:
-                password_type = 'enable'
+        elif self.service == packet.TAC_PLUS_AUTHEN_SVC_ENABLE:
+            password_type = 'enable'
 
-            else:
-                log.msg('Unknown authentication service: %i' % self.service)
-                password_type = None
+        else:
+            log.msg('Unknown authentication service: %i' % self.service)
+            password_type = None
 
-            authentication_successful = user.check_password(password_type, self.password)
+        d = user.check_password(password_type, self.password)
+        d.addCallback(self.authenticationSucceeded, user, password_type, request)
+        d.addErrback(self.authenticationFailed, user, password_type, request)
 
-            if authentication_successful:
-                log.msg('Authentication successful!')
-                reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_PASS
+        return d
 
-            else:
-                log.msg('Authentication failed!')
-                reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_FAIL
+    def findUserFailed(self, reason, request):
+        reply = request.get_reply()
 
-            message = user.get_authentication_message(authentication_successful, password_type)
+        log.msg('Authentication failed: %s!' % reason)
+        reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_FAIL
+        reply.authentication_flags = 0
+        reply.data = ''
+        return reply
 
-            if isinstance(message, unicode):
-                reply.server_msg = message
-            elif isinstance(message, str):
-                reply.server_msg = message.decode('utf-8')
-            else:
-                reply.server_msg = message.render(client = self.client, session = self, request = request, user = user)
+    def authenticationSucceeded(self, succeeded, user, password_type, request):
+        reply = request.get_reply()
 
-            reply.authentication_flags = 0
-            reply.data = ''
-            return reply
+        log.msg('Authentication successful!')
+        reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_PASS
+
+        message = user.get_authentication_message(succeeded, password_type)
+
+        if isinstance(message, unicode):
+            reply.server_msg = message
+        elif isinstance(message, str):
+            reply.server_msg = message.decode('utf-8')
+        else:
+            reply.server_msg = message.render(client = self.client, session = self, request = request, user = user)
+
+        reply.authentication_flags = 0
+        reply.data = ''
+        return reply
+
+    def authenticationFailed(self, failure, succeeded, password_type, request):
+        reply = request.get_reply()
+
+        log.msg('Authentication failed!')
+        reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_FAIL
+
+        message = user.get_authentication_message(succeeded, password_type)
+
+        if isinstance(message, unicode):
+            reply.server_msg = message
+        elif isinstance(message, str):
+            reply.server_msg = message.decode('utf-8')
+        else:
+            reply.server_msg = message.render(client = self.client, session = self, request = request, user = user)
+
+        reply.authentication_flags = 0
+        reply.data = ''
+        return reply

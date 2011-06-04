@@ -1,6 +1,6 @@
 # -*- mode: python; coding: utf-8 -*-
 
-# Copyright © 2008 by Jeffrey C. Ollie
+# Copyright © 2008,2010 by Jeffrey C. Ollie
 #
 # This file is part of Secant.
 #
@@ -131,18 +131,42 @@ class PacketError:
 argument_re = re.compile(r'^([^=*]+)([=*])(.*)$')
 
 class Argument:
-    def __init__(self, argument):
-        if isinstance(argument, str):
-            argument = argument.decode('ascii')
+    def __init__(self, argument = None, key = None, value = None, is_optional = False):
+        if isinstance(argument, basestring):
+            if isinstance(argument, str):
+                argument = argument.decode('ascii')
 
-        self.key = None
-        self.value = None
-        self.is_optional = None
-        argument_match = argument_re.match(argument)
-        if argument_match:
+            argument_match = argument_re.match(argument)
+            if not argument_match:
+                raise PacketError('Argument does not match!')
+
             self.key = argument_match.group(1)
             self.value = argument_match.group(3)
             self.is_optional = argument_match.group(2) == '*'
+
+        elif key is not None and value is not None:
+            if isinstance(key, str):
+                self.key = key.decode('ascii')
+
+            elif isinstance(key, unicode):
+                self.key = key
+
+            else:
+                self.key = str(key)
+
+            if isinstance(value, str):
+                self.value = value.decode('ascii')
+
+            elif isinstance(value, unicode):
+                self.value = value
+
+            else:
+                self.value = str(value)
+                
+            self.is_optional = is_optional
+
+        else:
+            raise PacketError('Invalid arguments!')
 
     def __str__(self):
         key = self.key.encode('ascii')
@@ -153,12 +177,7 @@ class Argument:
             return '%s=%s' % (key, value)
 
     def __repr__(self):
-        key = self.key.encode('ascii')
-        value = self.value.encode('ascii')
-        if self.is_optional:
-            return `'%s*%s' % (key, value)`
-        else:
-            return `'%s=%s' % (key, value)`
+        return repr(str(self))
 
     def __len__(self):
         key = self.key.encode('ascii')
@@ -310,6 +329,7 @@ class AuthenticationStart(Packet):
 
         index = 8
 
+        print `self.plaintext_body[index:index+user_len]`
         self.user = self.plaintext_body[index:index+user_len].decode('ascii')
         index += user_len
 
