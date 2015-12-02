@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
-from twisted.python import log
+from twisted.logger import Logger
 
 from secant import session
 from secant import packet

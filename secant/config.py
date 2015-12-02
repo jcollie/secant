@@ -19,10 +19,12 @@
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
 from lxml import etree
-from twisted.python import log
+from twisted.logger import Logger()
 import os
 
 from secant import templates
+
+log = Logger()
 
 default_paths = {'users': ['./users.xml', '/etc/secant/users.xml'],
                  'clients': ['./clients.xml', '/etc/secant/clients.xml'],

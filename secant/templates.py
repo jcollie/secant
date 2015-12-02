@@ -18,7 +18,9 @@
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
 import genshi.template
-from twisted.python import log
+from twisted.logger import Logger
+
+log = Logger()
 
 # DO NOT IMPORT secant.config BECAUSE IT WILL CAUSE CIRCULAR IMPORTS!
 

@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
-from twisted.python import log
+from twisted.logger import Logger
 from twisted.internet import defer
 
 from secant import session
@@ -26,6 +26,8 @@ from secant import config
 from secant import users
 
 class AuthenticationSessionHandler(session.SessionHandler):
+    log = Logger()
+
     def __init__(self, client, session_id):
         session.SessionHandler.__init__(self, client, session_id)
         self.reset()
@@ -49,7 +51,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
 
             log_message = config.log_formats.get('authentication-start')
             if log_message is not None:
-                log.msg(log_message.render(session = self, request = request))
+                self.log.msg(log_message.render(session = self, request = request))
             
             self.action = request.action
             self.priv_lvl = request.priv_lvl
@@ -81,10 +83,10 @@ class AuthenticationSessionHandler(session.SessionHandler):
 
             log_message = config.log_formats.get('authentication-continue')
             if log_message is not None:
-                log.msg(log_message.render(session = self, request = request))
+                self.log.msg(log_message.render(session = self, request = request))
 
             if request.authentication_flags & packet.TAC_PLUS_CONTINUE_FLAG_ABORT:
-                log.msg('Remote requested abort!')
+                self.log.msg('Remote requested abort!')
                 self.reset()
                 return defer.succeed(None)
 
@@ -103,7 +105,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
                 return defer.succeed(reply)
 
         if self.username == u'':
-            log.msg('Requesting username...')
+            self.log.msg('Requesting username...')
             reply = request.get_reply()
             reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_GETUSER
             reply.authentication_flags = 0
@@ -125,7 +127,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
             return defer.succeed(reply)
 
         elif self.password == u'':
-            log.msg('Requesting password...')
+            self.log.msg('Requesting password...')
             reply = request.get_reply()
             reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_GETPASS
             reply.authentication_flags = packet.TAC_PLUS_REPLY_FLAG_NOECHO
@@ -167,7 +169,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
             password_type = 'enable'
 
         else:
-            log.msg('Unknown authentication service: %i' % self.service)
+            self.log.msg('Unknown authentication service: %i' % self.service)
             password_type = None
 
         d = user.check_password(password_type, self.password)
@@ -179,7 +181,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
     def findUserFailed(self, reason, request):
         reply = request.get_reply()
 
-        log.msg('Authentication failed: %s!' % reason)
+        self.log.msg('Authentication failed: %s!' % reason)
         reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_FAIL
         reply.authentication_flags = 0
         reply.data = ''
@@ -188,7 +190,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
     def authenticationSucceeded(self, succeeded, user, password_type, request):
         reply = request.get_reply()
 
-        log.msg('Authentication successful!')
+        self.log.msg('Authentication successful!')
         reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_PASS
 
         message = user.get_authentication_message(succeeded, password_type)
@@ -207,7 +209,7 @@ class AuthenticationSessionHandler(session.SessionHandler):
     def authenticationFailed(self, failure, succeeded, password_type, request):
         reply = request.get_reply()
 
-        log.msg('Authentication failed!')
+        self.log.msg('Authentication failed!')
         reply.authentication_status = packet.TAC_PLUS_AUTHEN_STATUS_FAIL
 
         message = user.get_authentication_message(succeeded, password_type)

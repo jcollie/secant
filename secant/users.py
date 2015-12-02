@@ -20,7 +20,7 @@
 
 from secant import config
 
-from twisted.python import log
+from twisted.logger import Logger
 from twisted.internet import defer
 from twisted.web import error
 
@@ -30,6 +30,8 @@ import time
 import paisley
 
 class User:
+    log = Logger()
+
     def __init__(self, username, passwords = {}, messages = {}, authorization_rules = []):
         self.username = username
         self.passwords = passwords
@@ -47,11 +49,11 @@ class User:
                'message': message,
                'time': time.time()}
 
-        log.msg(message)
+        self.log.msg(message)
         self.server.saveDoc('secant', doc)
 
     def check_password(self, password_type, supplied_password):
-        log.msg('Checking password type %s for user %s' % (password_type, self.username))
+        self.log.msg('Checking password type %s for user %s' % (password_type, self.username))
         if password_type not in ['login', 'enable']:
             self.log_authentication(False, password_type, 'Authentication failed because password type %s is unsupported.' % (password_type,))
             return defer.fail(False)
@@ -70,12 +72,12 @@ class User:
     
         if len(result['rows']) == 1 and result['rows'][0]['key'][0] == self.username:
             if result['rows'][0]['value'] >= 3:
-                log.msg('Too many failed authentication attempts in the last fifteen minutes!')
+                self.log.msg('Too many failed authentication attempts in the last fifteen minutes!')
                 return defer.fail(False)
             return self.check_password_final(password_type, supplied_password)
 
         elif len(result['rows']) >= 1:
-            log.msg('Too many results!')
+            self.log.msg('Too many results!')
             return defer.fail(False)
 
         else:
@@ -86,7 +88,7 @@ class User:
 
         if my_password is None and password_type == 'enable':
             my_password = config.globals['enable_password'].render()
-            log.msg('Getting global enable password for user %s' % (self.username,))
+            self.log.msg('Getting global enable password for user %s' % (self.username,))
 
         if my_password is None:
             self.log_authentication(False, password_type, 'Authentication failed because password type %s for user %s can\'t be determined.' % (password_type, self.username))

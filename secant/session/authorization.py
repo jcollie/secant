@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
-from twisted.python import log
+from twisted.logger import Logger
 from twisted.internet import defer
 
 from secant import config
@@ -28,6 +28,8 @@ from secant import users
 import paisley
 
 class AuthorizationSessionHandler(session.SessionHandler):
+    log = Logger()
+
     def __init__(self, client, session_id):
         session.SessionHandler.__init__(self, client, session_id)
     
@@ -43,7 +45,7 @@ class AuthorizationSessionHandler(session.SessionHandler):
 
         log_message = config.log_formats.get('authorization')
         if log_message is not None:
-            log.msg(log_message.render(session = self, request = request))
+            self.log.msg(log_message.render(session = self, request = request))
 
         if request.user == '':
             reply = request.get_reply()

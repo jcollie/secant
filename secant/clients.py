@@ -19,7 +19,7 @@
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from twisted.python import log
+from twisted.logger import Logger
 from twisted.internet import defer
 
 import os
@@ -31,6 +31,8 @@ from secant import templates
 import paisley
 
 class Client:
+    log = Logger()
+
     def __init__(self,
                  address,
                  secret = None,
@@ -63,6 +65,8 @@ class Client:
         return prompt
 
 class find_client(defer.Deferred):
+    log = Logger()
+
     def __init__(self, address):
         defer.Deferred.__init__(self)
         self.address = ipaddr.IPAddress(address)
@@ -86,9 +90,9 @@ class find_client(defer.Deferred):
 
         else:
             if len(result['rows']) == 1:
-                log.msg('Found %i client entry for address %s' % (len(result['rows']), self.address))
+                self.log.msg('Found %i client entry for address %s' % (len(result['rows']), self.address))
             else:
-                log.msg('Found %i client entries for address %s' % (len(result['rows']), self.address))
+                self.log.msg('Found %i client entries for address %s' % (len(result['rows']), self.address))
 
             client = Client(address = self.address,
                             secret = result['rows'][0]['value'].get('secret', None),
