@@ -25,7 +25,7 @@ from secant import session
 from secant import packet
 from secant import users
 
-import paisley
+#import paisley
 
 class AuthorizationSessionHandler(session.SessionHandler):
     log = Logger()
@@ -33,7 +33,7 @@ class AuthorizationSessionHandler(session.SessionHandler):
     def __init__(self, client, session_id):
         session.SessionHandler.__init__(self, client, session_id)
     
-        self.server = paisley.CouchDB('127.0.0.1')
+        #self.server = paisley.CouchDB('127.0.0.1')
 
         self.user = None
         self.service = None
@@ -45,7 +45,7 @@ class AuthorizationSessionHandler(session.SessionHandler):
 
         log_message = config.log_formats.get('authorization')
         if log_message is not None:
-            self.log.msg(log_message.render(session = self, request = request))
+            self.log.debug(log_message.render(session = self, request = request))
 
         if request.user == '':
             reply = request.get_reply()
@@ -61,11 +61,12 @@ class AuthorizationSessionHandler(session.SessionHandler):
         self.user = user
         
         for argument in request.args:
-            if argument.key == u'service':
+            self.log.debug('"{k:}" "{v:}"', k = argument.key, v = argument.value)
+            if argument.key == 'service':
                 self.service = argument.value
-            if argument.key == u'cmd':
+            if argument.key == 'cmd':
                 self.command = argument.value
-            if argument.key == u'cmd-arg':
+            if argument.key == 'cmd-arg':
                 self.command_arguments.append(argument.value)
 
         #print service, command, command_arguments
@@ -74,30 +75,30 @@ class AuthorizationSessionHandler(session.SessionHandler):
         reply = request.get_reply()
         reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_PASS_ADD
 
-        for authorization_rule in user.authorization_rules:
-            if authorization_rule['service'] == self.service and authorization_rule['command'] == self.command:
-                if authorization_rule.has_key('status'):
-                    if authorization_rule['status'] == 'fail':
-                        reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_FAIL
-                    elif authorization_rule['status'] == 'pass_repl':
-                        reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_PASS_ADD
-                    elif authorization_rule['status'] == 'pass_add':
-                        reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_PASS_ADD
-                    else:
-                        reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_PASS_ADD
-                else:
-                    reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_PASS_ADD
-                if authorization_rule.has_key('arguments'):
-                    for key in authorization_rule['arguments']:
-                        if isinstance(authorization_rule['arguments'][key], dict):
-                            value = authorization_rule['arguments'][key].get('value')
-                            is_optional = authorization_rule['arguments'][key].get('is_optional', False)
-                        else:
-                            value = authorization_rule['arguments'][key]
-                            is_optional = False
+        # for authorization_rule in user.authorization_rules:
+        #     if authorization_rule['service'] == self.service and authorization_rule['command'] == self.command:
+        #         if authorization_rule.has_key('status'):
+        #             if authorization_rule['status'] == 'fail':
+        #                 reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_FAIL
+        #             elif authorization_rule['status'] == 'pass_repl':
+        #                 reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_PASS_ADD
+        #             elif authorization_rule['status'] == 'pass_add':
+        #                 reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_PASS_ADD
+        #             else:
+        #                 reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_PASS_ADD
+        #         else:
+        #             reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_PASS_ADD
+        #         if authorization_rule.has_key('arguments'):
+        #             for key in authorization_rule['arguments']:
+        #                 if isinstance(authorization_rule['arguments'][key], dict):
+        #                     value = authorization_rule['arguments'][key].get('value')
+        #                     is_optional = authorization_rule['arguments'][key].get('is_optional', False)
+        #                 else:
+        #                     value = authorization_rule['arguments'][key]
+        #                     is_optional = False
 
-                        reply.args.append(packet.Argument(key = key, value = value, is_optional = is_optional))
-                break
-        
+        #                 reply.args.append(packet.Argument(key = key, value = value, is_optional = is_optional))
+        #         break
+        reply.args.append(packet.Argument(key = 'priv-lvl', value = '15', is_optional = False))
         reply.authorization_status = packet.TAC_PLUS_AUTHOR_STATUS_PASS_ADD
         return reply

@@ -19,7 +19,7 @@
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
 from lxml import etree
-from twisted.logger import Logger()
+from twisted.logger import Logger
 import os
 
 from secant import templates
@@ -71,7 +71,7 @@ def load_config(config_paths=[]):
                 if template_creator is not None:
                     template_creator.update_search_path(template_search_path)
                 else:
-                    log.msg('Unknown template creator "%s"' % template_creator_name)
+                    log.debug('Unknown template creator "%s"' % template_creator_name)
 
             global_elements = config_tree.xpath('/config/globals/*')
 
@@ -97,12 +97,12 @@ def load_config(config_paths=[]):
                 log_format_name = log_format_element.tag
                 log_formats[log_format_name] = templates.template_from_element(log_format_element)
                 
-            log.msg('Loaded configuration from "%s"' % os.path.realpath(config_path))
+            log.debug('Loaded configuration from "%s"' % os.path.realpath(config_path))
 
             break
 
-        except IOError, e:
-            log.msg('Unable to load configuration from "%s"' % config_path)
+        except IOError as e:
+            log.debug('Unable to load configuration from "%s"' % config_path)
 
     for key, value in paths.items():
         if not value and key in default_paths:

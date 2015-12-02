@@ -18,17 +18,20 @@
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
 from twisted.logger import Logger
+from twisted.internet import defer
 
 from secant import session
 from secant import packet
 
 import time
-import paisley
+#import paisley
 
 class AccountingSessionHandler(session.SessionHandler):
+    log = Logger()
+    
     def __init__(self, client, session_id):
         session.SessionHandler.__init__(self, client, session_id)
-        self.server = paisley.CouchDB('127.0.0.1')
+        #self.server = paisley.CouchDB('127.0.0.1')
 
     def process_request(self, request):
         request = packet.AccountingRequest(copy_of = request)
@@ -53,7 +56,9 @@ class AccountingSessionHandler(session.SessionHandler):
             doc['arguments'][argument.key] = {'value': argument.value,
                                               'is_optional': argument.is_optional}
 
+        self.log.debug('{d:}', d = doc)
+        
         reply = request.get_reply()
         reply.accounting_status = packet.TAC_PLUS_ACCT_STATUS_SUCCESS
 
-        return self.server.saveDoc('secant', doc).addCallback(lambda x: reply)
+        return defer.succeed(reply) #self.server.saveDoc('secant', doc).addCallback(lambda x: reply)

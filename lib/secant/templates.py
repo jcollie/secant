@@ -101,7 +101,7 @@ def template_from_element(element):
     template_creator_name = element.get('template', 'plain')
     template_creator = template_creators.get(template_creator_name)
     if template_creator is not None:
-        log.msg('Using template creator "%s"' % (template_creator_name))
+        log.debug('Using template creator "%s"' % (template_creator_name))
         filename = element.get('filename')
         if filename is None:
             text = element.xpath('text()')[0].decode()
@@ -110,5 +110,5 @@ def template_from_element(element):
             template = template_creator.create_template(filename = filename)
         return template
     else:
-        log.msg('Invalid template creator "%s"' % (template_creator_name))
+        log.debug('Invalid template creator "%s"' % (template_creator_name))
         raise SecantTemplateError()

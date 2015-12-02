@@ -17,9 +17,9 @@
 # You should have received a copy of the GNU General Public License
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import generators
+from twisted.logger import Logger
 
-import md5
+import hashlib
 import re
 import struct
 
@@ -40,14 +40,14 @@ TAC_PLUS_AUTHEN_CHPASS           = 0x02
 TAC_PLUS_AUTHEN_SENDPASS         = 0x03 # (deprecated)
 TAC_PLUS_AUTHEN_SENDAUTH         = 0x04
 
-authen_action_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHEN_')])
+authen_action_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_AUTHEN')}
 
 TAC_PLUS_PRIV_LVL_MAX            = 0x0f
 TAC_PLUS_PRIV_LVL_ROOT           = 0x0f
 TAC_PLUS_PRIV_LVL_USER           = 0x01
 TAC_PLUS_PRIV_LVL_MIN            = 0x00
 
-priv_lvl_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_PRIV_LVL')])
+priv_lvl_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_PRIV_LVL')}
 
 TAC_PLUS_AUTHEN_TYPE_ASCII       = 0x01
 TAC_PLUS_AUTHEN_TYPE_PAP         = 0x02
@@ -55,7 +55,7 @@ TAC_PLUS_AUTHEN_TYPE_CHAP        = 0x03
 TAC_PLUS_AUTHEN_TYPE_ARAP        = 0x04
 TAC_PLUS_AUTHEN_TYPE_MSCHAP      = 0x05
 
-authen_type_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHEN_TYPE')])
+authen_type_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_AUTHEN_TYPE')}
 
 TAC_PLUS_AUTHEN_SVC_NONE         = 0x00
 TAC_PLUS_AUTHEN_SVC_LOGIN        = 0x01
@@ -68,7 +68,7 @@ TAC_PLUS_AUTHEN_SVC_X25          = 0x07
 TAC_PLUS_AUTHEN_SVC_NASI         = 0x08
 TAC_PLUS_AUTHEN_SVC_FWPROXY      = 0x09
 
-authen_svc_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHEN_SVC')])
+authen_svc_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_AUTHEN_SVC')}
 
 TAC_PLUS_AUTHEN_STATUS_PASS      = 0x01
 TAC_PLUS_AUTHEN_STATUS_FAIL      = 0x02
@@ -79,15 +79,15 @@ TAC_PLUS_AUTHEN_STATUS_RESTART   = 0x06
 TAC_PLUS_AUTHEN_STATUS_ERROR     = 0x07
 TAC_PLUS_AUTHEN_STATUS_FOLLOW    = 0x21
 
-authen_status_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHEN_STATUS')])
+authen_status_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_AUTHEN_STATUS')}
 
 TAC_PLUS_REPLY_FLAG_NOECHO       = 0x01
 
-reply_flag_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_REPLY_FLAG')])
+reply_flag_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_REPLY_FLAG')}
 
 TAC_PLUS_CONTINUE_FLAG_ABORT     = 0x01
 
-continue_flag_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_CONTINUE_FLAG')])
+continue_flag_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_CONTINUE_FLAG')}
 
 TAC_PLUS_AUTHEN_METH_NOT_SET     = 0x00
 TAC_PLUS_AUTHEN_METH_NONE        = 0x01
@@ -101,7 +101,7 @@ TAC_PLUS_AUTHEN_METH_RADIUS      = 0x10
 TAC_PLUS_AUTHEN_METH_KRB4        = 0x11
 TAC_PLUS_AUTHEN_METH_RCMD        = 0x20
 
-authen_meth_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHEN_METH')])
+authen_meth_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_AUTHEN_MATH')}
 
 TAC_PLUS_AUTHOR_STATUS_PASS_ADD  = 0x01
 TAC_PLUS_AUTHOR_STATUS_PASS_REPL = 0x02
@@ -109,22 +109,22 @@ TAC_PLUS_AUTHOR_STATUS_FAIL      = 0x10
 TAC_PLUS_AUTHOR_STATUS_ERROR     = 0x11
 TAC_PLUS_AUTHOR_STATUS_FOLLOW    = 0x21
 
-author_status_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_AUTHOR_STATUS')])
+author_status_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_AUTHOR_STATUS')}
 
 TAC_PLUS_ACCT_FLAG_MORE          = 0x01 # deprecated
 TAC_PLUS_ACCT_FLAG_START         = 0x02
 TAC_PLUS_ACCT_FLAG_STOP          = 0x04
 TAC_PLUS_ACCT_FLAG_WATCHDOG      = 0x08
 
-acct_flag_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_ACCT_FLAG')])
+acct_flag_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_ACCT_FLAG')}
 
 TAC_PLUS_ACCT_STATUS_SUCCESS     = 0x01
 TAC_PLUS_ACCT_STATUS_ERROR       = 0x02
 TAC_PLUS_ACCT_STATUS_FOLLOW      = 0x21
 
-acct_status_map = dict([(locals()[n], n[9:]) for n in dir() if n.startswith('TAC_PLUS_ACCT_STATUS')])
+acct_status_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_ACCT_STATUS')}
 
-class PacketError:
+class PacketError(Exception):
     def __init__(self, message):
         self.message = message
 
@@ -132,8 +132,8 @@ argument_re = re.compile(r'^([^=*]+)([=*])(.*)$')
 
 class Argument:
     def __init__(self, argument = None, key = None, value = None, is_optional = False):
-        if isinstance(argument, basestring):
-            if isinstance(argument, str):
+        if isinstance(argument, (str, bytes)):
+            if isinstance(argument, bytes):
                 argument = argument.decode('ascii')
 
             argument_match = argument_re.match(argument)
@@ -145,19 +145,19 @@ class Argument:
             self.is_optional = argument_match.group(2) == '*'
 
         elif key is not None and value is not None:
-            if isinstance(key, str):
+            if isinstance(key, bytes):
                 self.key = key.decode('ascii')
 
-            elif isinstance(key, unicode):
+            elif isinstance(key, str):
                 self.key = key
 
             else:
                 self.key = str(key)
 
-            if isinstance(value, str):
+            if isinstance(value, bytes):
                 self.value = value.decode('ascii')
 
-            elif isinstance(value, unicode):
+            elif isinstance(value, str):
                 self.value = value
 
             else:
@@ -169,13 +169,19 @@ class Argument:
             raise PacketError('Invalid arguments!')
 
     def __str__(self):
+        if self.is_optional:
+            return '{}*{}'.format(self.key, self.value)
+        else:
+            return '{}={}'.format(self.key, self.value)
+
+    def __bytes__(self):
         key = self.key.encode('ascii')
         value = self.value.encode('ascii')
         if self.is_optional:
-            return '%s*%s' % (key, value)
+            return key + b'*' + value
         else:
-            return '%s=%s' % (key, value)
-
+            return key + b'=' + value
+        
     def __repr__(self):
         return repr(str(self))
 
@@ -184,11 +190,11 @@ class Argument:
         value = self.value.encode('ascii')
         return len(key) + len(value) + 1
 
-def generate_pseudo_pad(header, secret_key):
+def pseudo_pad(header, secret_key):
     """Generate pseudo pad that is used to encrypt the packet body.
     Algotithm is described in section 5 of the TACACS+ Internet Draft.
     """
-    md5_1 = md5.new()
+    md5_1 = hashlib.md5()
     md5_1.update(header[4:8]) # session_id
     md5_1.update(secret_key)
     md5_1.update(header[:1])  # version
@@ -204,6 +210,8 @@ def generate_pseudo_pad(header, secret_key):
         hash = md5_n.digest()
 
 class Packet:
+    log = Logger()
+    
     def __init__(self, secret_key = None, reply_to = None, copy_of = None):
 
         assert reply_to is None or copy_of is None
@@ -261,18 +269,16 @@ class Packet:
             self.plaintext_body = self.ciphertext_body
 
         else:
-            self.plaintext_body = ''.join(map(lambda (data, pad): chr(ord(data) ^ ord(pad)),
-                                              zip(self.ciphertext_body[:self.length],
-                                                  generate_pseudo_pad(self.header, self.secret_key))))
+            self.plaintext_body = bytes([data ^ pad for data, pad in zip(self.ciphertext_body[:self.length],
+                                                                         pseudo_pad(self.header, self.secret_key))])
 
     def encrypt_body(self):
         if (self.header_flags & TAC_PLUS_UNENCRYPTED_FLAG) and (self.secret_key is not None):
             self.ciphertext_body = self.plaintext_body
 
         else:
-            self.ciphertext_body = ''.join(map(lambda (data, pad): chr(ord(data) ^ ord(pad)),
-                                               zip(self.plaintext_body[:self.length],
-                                                   generate_pseudo_pad(self.header, self.secret_key))))
+            self.ciphertext_body = bytes([data ^ pad for data, pad in zip(self.plaintext_body[:self.length],
+                                                                          pseudo_pad(self.header, self.secret_key))])
 
     def unpack_body(self):
         pass
@@ -304,10 +310,10 @@ class AuthenticationStart(Packet):
         self.priv_lvl = None
         self.authen_type = None
         self.service = None
-        self.user = u''
-        self.port = u''
-        self.rem_addr = u''
-        self.data = ''
+        self.user = ''
+        self.port = ''
+        self.rem_addr = ''
+        self.data = b''
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
 
@@ -329,7 +335,6 @@ class AuthenticationStart(Packet):
 
         index = 8
 
-        print `self.plaintext_body[index:index+user_len]`
         self.user = self.plaintext_body[index:index+user_len].decode('ascii')
         index += user_len
 
@@ -343,13 +348,13 @@ class AuthenticationStart(Packet):
         index += data_len
 
     def pack_body(self):
-        if isinstance(self.data, unicode):
-            raise PacketError('data must be a plain string')
-        if not isinstance(self.user, unicode):
+        if isinstance(self.data, bytes):
+            raise PacketError('data must be a byte string')
+        if not isinstance(self.user, str):
             raise PacketError('user must be a unicode string')
-        if not isinstance(self.port, unicode):
+        if not isinstance(self.port, str):
             raise PacketError('port must be a unicode string')
-        if not isinstance(self.rem_addr, unicode):
+        if not isinstance(self.rem_addr, str):
             raise PacketError('rem_addr must be a unicode string')
 
         user = self.user.encode('ascii')
@@ -381,8 +386,8 @@ class AuthenticationReply(Packet):
 
         self.authentication_status = None
         self.authentication_flags = None
-        self.server_msg = u''
-        self.data = ''
+        self.server_msg = b''
+        self.data = b''
 
     def unpack_body(self):
         (self.authentication_status,
@@ -399,9 +404,9 @@ class AuthenticationReply(Packet):
         index += data_len
 
     def pack_body(self):
-        if not isinstance(self.data, str):
-            raise PacketError('data must be a plain string')
-        if not isinstance(self.server_msg, unicode):
+        if not isinstance(self.data, bytes):
+            raise PacketError('data must be a byte string')
+        if not isinstance(self.server_msg, str):
             raise PacketError('server_msg must be a unicode string')
 
         server_msg = self.server_msg.encode('ascii')
@@ -421,8 +426,8 @@ class AuthenticationReply(Packet):
 class AuthenticationContinue(Packet):
     def __init__(self, secret_key=None, copy_of=None):
         self.authentication_flags = None
-        self.user_msg = u''
-        self.data = ''
+        self.user_msg = ''
+        self.data = b''
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
 
@@ -441,9 +446,9 @@ class AuthenticationContinue(Packet):
         index += data_len
 
     def pack_body(self):
-        if not isinstance(self.data, str):
-            raise PacketError('data must be a plain string')
-        if not isinstance(self.user_msg, unicode):
+        if not isinstance(self.data, bytes):
+            raise PacketError('data must be a byte string')
+        if not isinstance(self.user_msg, str):
             raise PacketError('user_msg must be a unicode string')
 
         user_msg = self.user_msg.encode('ascii')
@@ -463,9 +468,9 @@ class AuthorizationRequest(Packet):
         self.priv_lvl = None
         self.authen_type = None
         self.authen_service = None
-        self.user = u''
-        self.port = u''
-        self.rem_addr = u''
+        self.user = ''
+        self.port = ''
+        self.rem_addr = ''
         self.args = []
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
@@ -482,7 +487,7 @@ class AuthorizationRequest(Packet):
 
         index = 8
 
-        arg_lengths = map(ord, self.plaintext_body[index:index+arg_cnt])
+        arg_lengths = self.plaintext_body[index:index+arg_cnt]
         index += arg_cnt
 
         self.user = self.plaintext_body[index:index+user_len].decode('ascii')
@@ -500,11 +505,11 @@ class AuthorizationRequest(Packet):
             index += arg_length
 
     def pack_body(self):
-        if not isinstance(self.user, unicode):
+        if not isinstance(self.user, str):
             raise PacketError('user must be a unicode string')
-        if not isinstance(self.port, unicode):
+        if not isinstance(self.port, str):
             raise PacketError('port must be a unicode string')
-        if not isinstance(self.rem_addr, unicode):
+        if not isinstance(self.rem_addr, str):
             raise PacketError('rem_addr must be a unicode string')
 
         user = self.user.encode('ascii')
@@ -521,14 +526,14 @@ class AuthorizationRequest(Packet):
                            len(rem_addr),
                            len(self.args))
 
-        body += ''.join(map(lambda arg: chr(len(arg)), args))
+        body += bytes([len(arg) for arg in self.args])
 
         body += user
         body += port
         body += rem_addr
 
         for arg in args:
-            body += str(arg)
+            body += bytes(arg)
 
         self.plaintext_body = body
         self.length = len(self.plaintext_body)
@@ -542,8 +547,8 @@ class AuthorizationResponse(Packet):
 
         self.authorization_status = None
         self.args = []
-        self.server_msg = u''
-        self.data = ''
+        self.server_msg = ''
+        self.data = b''
 
         Packet.__init__(self, reply_to=reply_to)
 
@@ -555,7 +560,7 @@ class AuthorizationResponse(Packet):
 
         index = 6
 
-        arg_lengths = map(ord, self.plaintext_body[index:index+arg_cnt])
+        arg_lengths = self.plaintext_body[index:index+arg_cnt]
         index += arg_cnt
 
         self.server_msg = self.plaintext_body[index:index+server_msg_len].decode('ascii')
@@ -570,9 +575,9 @@ class AuthorizationResponse(Packet):
             index += arg_length
 
     def pack_body(self):
-        if not isinstance(self.data, str):
+        if not isinstance(self.data, bytes):
             raise PacketError('data must be a plain string')
-        if not isinstance(self.server_msg, unicode):
+        if not isinstance(self.server_msg, str):
             raise PacketError('user must be a unicode string')
 
         server_msg = self.server_msg.encode('ascii')
@@ -584,13 +589,13 @@ class AuthorizationResponse(Packet):
                            len(self.data))
 
 
-        body += ''.join(map(lambda arg: chr(len(arg)), self.args))
+        body += bytes([len(arg) for arg in self.args])
 
         body += server_msg
         body += self.data
 
         for arg in self.args:
-            body += str(arg)
+            body += bytes(arg)
 
         self.plaintext_body = body
         self.length = len(self.plaintext_body)
@@ -602,9 +607,9 @@ class AccountingRequest(Packet):
         self.priv_lvl = None
         self.authen_type = None
         self.authen_service = None
-        self.user = u''
-        self.port = u''
-        self.rem_addr = u''
+        self.user = ''
+        self.port = ''
+        self.rem_addr = ''
         self.args = []
 
         Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
@@ -622,7 +627,7 @@ class AccountingRequest(Packet):
 
         index = 9
 
-        arg_lengths = map(ord, self.plaintext_body[index:index+arg_cnt])
+        arg_lengths = self.plaintext_body[index:index+arg_cnt]
         index += arg_cnt
 
         self.user = self.plaintext_body[index:index+user_len].decode('ascii')
@@ -640,11 +645,11 @@ class AccountingRequest(Packet):
             index += arg_length
 
     def pack_body(self):
-        if not isinstance(self.user, unicode):
+        if not isinstance(self.user, str):
             raise PacketError('user must be a unicode string')
-        if not isinstance(self.port, unicode):
+        if not isinstance(self.port, str):
             raise PacketError('port must be a unicode string')
-        if not isinstance(self.rem_addr, unicode):
+        if not isinstance(self.rem_addr, str):
             raise PacketError('rem_addr must be a unicode string')
 
         user = self.user.encode('ascii')
@@ -666,13 +671,13 @@ class AccountingRequest(Packet):
         body += port
         body += rem_addr
 
-        body += ''.join(map(lambda arg: chr(len(arg)), self.args))
+        body += bytes([len(bytes(arg)) for arg in self.args])
 
         body += server_msg
         body += self.data
 
         for arg in self.args:
-            body += str(arg)
+            body += bytes(arg)
 
         self.plaintext_body = body
         self.length = len(self.plaintext_body)
@@ -685,8 +690,8 @@ class AccountingReply(Packet):
         assert isinstance(reply_to, AccountingRequest)
 
         self.accounting_status = None
-        self.server_msg = u''
-        self.data = ''
+        self.server_msg = ''
+        self.data = b''
 
         Packet.__init__(self, reply_to=reply_to)
 
@@ -702,9 +707,9 @@ class AccountingReply(Packet):
         index += data_len
 
     def pack_body(self):
-        if not isinstance(self.data, str):
+        if not isinstance(self.data, bytes):
             raise PacketError('data must be a plain string')
-        if not isinstance(self.server_msg, unicode):
+        if not isinstance(self.server_msg, str):
             raise PacketError('user must be a unicode string')
 
         server_msg = self.server_msg.encode('ascii')

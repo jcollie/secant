@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Secant.  If not, see <http://www.gnu.org/licenses/>.
 
+from twisted.internet.protocol import Factory
 from twisted.internet.protocol import Protocol
 from twisted.internet.address import IPv4Address
 from twisted.internet.error import ConnectionDone
@@ -30,22 +31,29 @@ from secant.session import authentication
 from secant.session import authorization
 from secant.session import accounting
 
-__all__ = ['packet', 'clients', 'config', 'users', 'templates', 'session', 'test', 'TacacsProtocol']
+__all__ = ['packet', 'clients', 'config', 'users', 'templates', 'session', 'test', 'TacacsProtocol', 'TacacsProtocolFactory']
 
+class TacacsProtocolFactory(Factory):
+    log = Logger()
+
+    def buildProtocol(self, peer):
+        self.log.info('Connection from {peer:}', peer = peer)
+        return TacacsProtocol(peer)
+    
 class TacacsProtocol(Protocol):
     log = Logger()
 
-    def __init__(self):
-        self.buffer = ''
+    def __init__(self, peer):
+        self.peer = peer
+        self.buffer = b''
         self.request = None
         self.handlers = {}
         self.client = None
 
     def connectionMade(self):
-        self.log.msg('Connection made.')
+        self.log.debug('Connection made.')
         self.transport.setTcpNoDelay(True)
 
-        self.peer = self.transport.getPeer()
         if isinstance(self.peer, IPv4Address):
             d = clients.find_client(self.peer.host)
             d.addCallback(self.setClient)
@@ -53,22 +61,22 @@ class TacacsProtocol(Protocol):
             #return d
 
     def setClient(self, client):
-        self.log.msg('setting client')
+        self.log.debug('setting client')
         self.client = client
         self.processData()
 
     def errorClient(self, failure):
-        self.log.msg('Error getting client: %s' % failure)
+        self.log.debug('Error getting client: {failure:}', failure = failure)
         self.transport.loseConnection()
 
     def dataReceived(self, data):
         self.buffer += data
-        self.log.msg('Received %i bytes.' % len(data))
+        self.log.debug('Received {count:} bytes.', count = len(data))
         self.processData()
 
     def processData(self):
         if self.client is None:
-            self.log.msg('Waiting for client info...\n')
+            self.log.debug('Waiting for client info...')
             return
 
         # If we aren't in the middle of processing a request see if we
@@ -85,14 +93,14 @@ class TacacsProtocol(Protocol):
             self.request = packet.Packet(self.client.get_secret())
             self.request.set_header(request_header)
 
-            self.log.msg('Header received, need %i bytes for the body.' % self.request.length)
+            self.log.debug('Header received, need {count:} bytes for the body.', count = self.request.length)
 
         # We've gotten enough data for the header and have started a
         # request, see if we have enough data for the body so we can
         # finish creating the generic request and can dispatch it to
         # the appropriate handler.
         if self.request is not None and len(self.buffer) >= self.request.length:
-            self.log.msg('%i bytes received for the body.' % self.request.length)
+            self.log.debug('{count:} bytes received for the body.', count = self.request.length)
 
             request_body = self.buffer[:self.request.length]
             self.buffer = self.buffer[self.request.length:]
@@ -103,22 +111,22 @@ class TacacsProtocol(Protocol):
 
     def processRequest(self):
         # Is this a request from a session we have already seen?
-        if self.handlers.has_key(self.request.session_id):
+        if self.request.session_id in self.handlers:
             # Yes, look up the handler from our cache.
             handler = self.handlers[self.request.session_id]
 
         else:
             # No, create a new session handler based upon the request type.
             if self.request.packet_type == packet.TAC_PLUS_AUTHEN:
-                self.log.msg('New authentication session %i.' % self.request.session_id)
+                self.log.debug('New authentication session {session_id:}.', session_id = self.request.session_id)
                 handler = authentication.AuthenticationSessionHandler(self.client, self.request.session_id)
 
             elif self.request.packet_type == packet.TAC_PLUS_AUTHOR:
-                self.log.msg('New authorization session %i.' % self.request.session_id)
+                self.log.debug('New authorization session {session_id:}.', session_id = self.request.session_id)
                 handler = authorization.AuthorizationSessionHandler(self.client, self.request.session_id)
 
             elif self.request.packet_type == packet.TAC_PLUS_ACCT:
-                self.log.msg('New accounting session %i.' % self.request.session_id)
+                self.log.debug('New accounting session {session_id:}.', session_id = self.request.session_id)
                 handler = accounting.AccountingSessionHandler(self.client, self.request.session_id)
 
             # Cache the new handler for the next request
@@ -133,7 +141,7 @@ class TacacsProtocol(Protocol):
         if reply != None:
             if self.request.header_flags & packet.TAC_PLUS_SINGLE_CONNECT_FLAG:
                 reply.header_flags |= packet.TAC_PLUS_SINGLE_CONNECT_FLAG
-            self.log.msg('Sending reply.')
+            self.log.debug('Sending reply.')
             self.transport.write(reply.pack())
 
         # Reset so that we start looking for a new request
@@ -141,6 +149,6 @@ class TacacsProtocol(Protocol):
 
     def connectionLost(self, reason):
         if not isinstance(reason.value, ConnectionDone):
-            self.log.msg('Connection lost: %s' % reason.value)
+            self.log.debug('Connection lost: {value:}', value = reason.value)
         else:
-            self.log.msg('Connection closed cleanly.')
+            self.log.debug('Connection closed cleanly.')

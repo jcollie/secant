@@ -27,7 +27,7 @@ from twisted.web import error
 import os
 import time
 
-import paisley
+#import paisley
 
 class User:
     log = Logger()
@@ -38,7 +38,7 @@ class User:
         self.messages = messages
         self.authorization_rules = authorization_rules
 
-        self.server = paisley.CouchDB('127.0.0.1')
+        #self.server = paisley.CouchDB('127.0.0.1')
 
     def log_authentication(self, succeeded, password_type, message):
 
@@ -49,11 +49,11 @@ class User:
                'message': message,
                'time': time.time()}
 
-        self.log.msg(message)
+        self.log.debug(message)
         self.server.saveDoc('secant', doc)
 
     def check_password(self, password_type, supplied_password):
-        self.log.msg('Checking password type %s for user %s' % (password_type, self.username))
+        self.log.debug('Checking password type %s for user %s' % (password_type, self.username))
         if password_type not in ['login', 'enable']:
             self.log_authentication(False, password_type, 'Authentication failed because password type %s is unsupported.' % (password_type,))
             return defer.fail(False)
@@ -72,12 +72,12 @@ class User:
     
         if len(result['rows']) == 1 and result['rows'][0]['key'][0] == self.username:
             if result['rows'][0]['value'] >= 3:
-                self.log.msg('Too many failed authentication attempts in the last fifteen minutes!')
+                self.log.debug('Too many failed authentication attempts in the last fifteen minutes!')
                 return defer.fail(False)
             return self.check_password_final(password_type, supplied_password)
 
         elif len(result['rows']) >= 1:
-            self.log.msg('Too many results!')
+            self.log.debug('Too many results!')
             return defer.fail(False)
 
         else:
@@ -88,7 +88,7 @@ class User:
 
         if my_password is None and password_type == 'enable':
             my_password = config.globals['enable_password'].render()
-            self.log.msg('Getting global enable password for user %s' % (self.username,))
+            self.log.debug('Getting global enable password for user %s' % (self.username,))
 
         if my_password is None:
             self.log_authentication(False, password_type, 'Authentication failed because password type %s for user %s can\'t be determined.' % (password_type, self.username))
@@ -120,36 +120,46 @@ class User:
             if message is not None:
                 return message
 
-        return u''
+        return ''
 
-#class AlwaysFailUser(User):
-#    def __init__(self, username):
-#        User.__init__(self, None)
-#
-#    def check_password(self, password_type, supplied_password):
-#        return defer.fail(False)
-
-class find_user(defer.Deferred):
+class AlwaysFailUser(User):
     def __init__(self, username):
-        defer.Deferred.__init__(self)
-        self.username = username
+        User.__init__(self, username)
 
-        self.server = paisley.CouchDB('127.0.0.1')
+    def check_password(self, password_type, supplied_password):
+        return defer.succeed(False)
 
-        query = self.server.openView('secant', 'users', 'by_username', keys = [username])
-        query.addCallback(self.parseResult)
-        query.addErrback(self.errback)
+class AlwaysSucceedUser(User):
+    def __init__(self, username):
+        User.__init__(self, username)
 
-    def parseResult(self, result):
-        if len(result['rows']) == 0:
-            self.errback('User %s not found!' % self.username)
+    def check_password(self, password_type, supplied_password):
+        return defer.succeed(True)
 
-        elif len(result['rows']) == 1:
-            user = User(username = result['rows'][0]['value'].get('username', None),
-                        passwords = result['rows'][0]['value'].get('passwords', {}),
-                        messages = result['rows'][0]['value'].get('messages', {}),
-                        authorization_rules = result['rows'][0]['value'].get('authorization_rules', []))
-            self.callback(user)
+def find_user(username):
+    return defer.succeed(AlwaysSucceedUser(username))
+                              
+# class find_user(defer.Deferred):
+#     def __init__(self, username):
+#         defer.Deferred.__init__(self)
+#         self.username = username
 
-        else:
-            self.errback('Too many results!')
+#         self.server = paisley.CouchDB('127.0.0.1')
+
+#         query = self.server.openView('secant', 'users', 'by_username', keys = [username])
+#         query.addCallback(self.parseResult)
+#         query.addErrback(self.errback)
+
+#     def parseResult(self, result):
+#         if len(result['rows']) == 0:
+#             self.errback('User %s not found!' % self.username)
+
+#         elif len(result['rows']) == 1:
+#             user = User(username = result['rows'][0]['value'].get('username', None),
+#                         passwords = result['rows'][0]['value'].get('passwords', {}),
+#                         messages = result['rows'][0]['value'].get('messages', {}),
+#                         authorization_rules = result['rows'][0]['value'].get('authorization_rules', []))
+#             self.callback(user)
+
+#         else:
+#             self.errback('Too many results!')
