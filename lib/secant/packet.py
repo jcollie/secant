@@ -37,7 +37,7 @@ TAC_PLUS_SINGLE_CONNECT_FLAG     = 0x04
 
 TAC_PLUS_AUTHEN_LOGIN            = 0x01
 TAC_PLUS_AUTHEN_CHPASS           = 0x02
-TAC_PLUS_AUTHEN_SENDPASS         = 0x03 # (deprecated)
+TAC_PLUS_AUTHEN_SENDPASS         = 0x03 # deprecated
 TAC_PLUS_AUTHEN_SENDAUTH         = 0x04
 
 authen_action_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_AUTHEN')}
@@ -101,7 +101,7 @@ TAC_PLUS_AUTHEN_METH_RADIUS      = 0x10
 TAC_PLUS_AUTHEN_METH_KRB4        = 0x11
 TAC_PLUS_AUTHEN_METH_RCMD        = 0x20
 
-authen_meth_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_AUTHEN_MATH')}
+authen_meth_map = {v: k[9:] for k, v in locals().items() if k.startswith('TAC_PLUS_AUTHEN_METH')}
 
 TAC_PLUS_AUTHOR_STATUS_PASS_ADD  = 0x01
 TAC_PLUS_AUTHOR_STATUS_PASS_REPL = 0x02
@@ -303,7 +303,7 @@ class Packet:
         return self.header + self.ciphertext_body
 
 class AuthenticationStart(Packet):
-    def __init__(self, secret_key=None, copy_of=None):
+    def __init__(self, secret_key = None, copy_of = None):
         self.packet_type = TAC_PLUS_AUTHEN
 
         self.action = None
@@ -315,10 +315,10 @@ class AuthenticationStart(Packet):
         self.rem_addr = ''
         self.data = b''
 
-        Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
+        Packet.__init__(self, secret_key = secret_key, copy_of = copy_of)
 
     def get_reply(self):
-        return AuthenticationReply(reply_to=self)
+        return AuthenticationReply(reply_to = self)
 
     def unpack_body(self):
         if self.plaintext_body is None:
@@ -382,11 +382,11 @@ class AuthenticationReply(Packet):
     def __init__(self, reply_to):
         assert isinstance(reply_to, (AuthenticationStart, AuthenticationContinue))
 
-        Packet.__init__(self, reply_to=reply_to)
+        Packet.__init__(self, reply_to = reply_to)
 
         self.authentication_status = None
         self.authentication_flags = None
-        self.server_msg = b''
+        self.server_msg = ''
         self.data = b''
 
     def unpack_body(self):
@@ -429,7 +429,7 @@ class AuthenticationContinue(Packet):
         self.user_msg = ''
         self.data = b''
 
-        Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
+        Packet.__init__(self, secret_key = secret_key, copy_of = copy_of)
 
     def get_reply(self):
         return AuthenticationReply(reply_to=self)
@@ -473,7 +473,7 @@ class AuthorizationRequest(Packet):
         self.rem_addr = ''
         self.args = []
 
-        Packet.__init__(self, secret_key=secret_key, copy_of=copy_of)
+        Packet.__init__(self, secret_key = secret_key, copy_of = copy_of)
 
     def unpack_body(self):
         (self.authen_method,

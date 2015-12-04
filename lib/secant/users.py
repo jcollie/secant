@@ -20,108 +20,84 @@
 
 from secant import config
 
+from twisted.internet import reactor
 from twisted.logger import Logger
 from twisted.internet import defer
 from twisted.web import error
 
+from txetcd.client import EtcdClient
+
 import os
 import time
-
-#import paisley
+import scrypt
+import binascii
+import json
 
 class User:
     log = Logger()
 
-    def __init__(self, username, passwords = {}, messages = {}, authorization_rules = []):
+    def __init__(self, username, passwords = {}, messages = {}, authorization_rules = [], passwords_index = None):
         self.username = username
         self.passwords = passwords
+        self.passwords_index = passwords_index
         self.messages = messages
         self.authorization_rules = authorization_rules
 
-        #self.server = paisley.CouchDB('127.0.0.1')
-
-    def log_authentication(self, succeeded, password_type, message):
-
-        doc = {'record_type': 'http://fedorahosted.org/secant/authentication_record',
-               'username': self.username,
-               'succeeded': succeeded,
-               'password_type': password_type,
-               'message': message,
-               'time': time.time()}
-
-        self.log.debug(message)
-        self.server.saveDoc('secant', doc)
-
     def check_password(self, password_type, supplied_password):
-        self.log.debug('Checking password type %s for user %s' % (password_type, self.username))
+        self.log.debug('Checking password type {t:} for user {u:}', t = password_type, u = self.username)
+        
         if password_type not in ['login', 'enable']:
-            self.log_authentication(False, password_type, 'Authentication failed because password type %s is unsupported.' % (password_type,))
-            return defer.fail(False)
+            self.log.info('Authentication failed because password type {t:} is unsupported.', t = password_type)
+            return defer.succeed(False)
 
-        d = self.server.openView('secant', 'users', 'authentication_failures',
-                                 startkey = [self.username, time.time() - (15 * 60)],
-                                 endkey = [self.username, time.time() + (1 * 60)],
-                                 reduce = True,
-                                 group = True,
-                                 group_level = 1)
-        d.addCallback(self.authenticationFailuresResult, password_type, supplied_password)
+        current_password_salt = binascii.unhexlify(self.passwords.get(password_type, {}).get('salt', ''))
+        current_password_hash = binascii.unhexlify(self.passwords.get(password_type, {}).get('hash', ''))
 
-        return d
+        if (current_password_salt == '' or current_password_hash == '') and password_type == 'enable':
+            self.log.debug('User "{u:}" does not have an enable password, falling back to login password', u = self.username)
+            current_password_salt = binascii.unhexlify(self.passwords.get('login', {}).get('salt', ''))
+            current_password_hash = binascii.unhexlify(self.passwords.get('login', {}).get('hash', ''))
 
-    def authenticationFailuresResult(self, result, password_type, supplied_password):
-    
-        if len(result['rows']) == 1 and result['rows'][0]['key'][0] == self.username:
-            if result['rows'][0]['value'] >= 3:
-                self.log.debug('Too many failed authentication attempts in the last fifteen minutes!')
-                return defer.fail(False)
-            return self.check_password_final(password_type, supplied_password)
+        if current_password_salt == '' and current_password_hash == '':
+            self.log.debug('Authentication failed for user "{u:}" because the user does not have a password set in the database',
+                           u = self.username)
+            return defer.succeed(False)
 
-        elif len(result['rows']) >= 1:
-            self.log.debug('Too many results!')
-            return defer.fail(False)
-
-        else:
-            return self.check_password_final(password_type, supplied_password)
-
-    def check_password_final(self, password_type, supplied_password):
-        my_password = self.passwords.get(password_type)
-
-        if my_password is None and password_type == 'enable':
-            my_password = config.globals['enable_password'].render()
-            self.log.debug('Getting global enable password for user %s' % (self.username,))
-
-        if my_password is None:
-            self.log_authentication(False, password_type, 'Authentication failed because password type %s for user %s can\'t be determined.' % (password_type, self.username))
-            return defer.fail(False)
-
-        if my_password == supplied_password:
-            self.log_authentication(True, password_type, 'Authentication for user %s succeeded.' % (self.username,))
+        supplied_password_hash = scrypt.hash(supplied_password, current_password_salt)
+        
+        if current_password_hash == supplied_password_hash:
+            self.log.debug('Authentication for user {u:} succeeded.', u = self.username)
             return defer.succeed(True)
 
         else:
-            self.log_authentication(False, password_type, 'Authentication for user %s failed.' % (self.username,))
-            return defer.fail(False)
+            self.log.debug('Authentication for user {u:} failed.', u = self.username)
+            return defer.succeed(False)
 
-    def get_authentication_message(self, authentication_successful, password_type):
-        if authentication_successful:
-            message_name_base = 'authentication-success'
-        else:
-            message_name_base = 'authentication-failure'
+    def change_password(self, password_type, old_supplied_password, new_supplied_password):
+        finished = defer.Deferred()
+        d = self.check_password(password_type, old_supplied_password)
+        d.addCallback(self.change_password_1, password_type, new_supplied_password, finished)
+        return finished
+    
+    def change_password_1(self, result, password_type, new_supplied_password, finished):
+        if not result:
+            self.log.debug('Not changing password because old password does not match!')
+            finished.callback(False)
 
-        message_names = [message_name_base]
+        new_supplied_password_salt = open('/dev/urandom', 'rb').read(64)
+        new_supplied_password_hash = scrypt.hash(new_supplied_password, new_supplied_password_hash)
+        self.passwords[password_type]['salt'] = binascii.hexlify(new_supplied_password_salt).decode('ascii')
+        self.passwords[password_type]['hash'] = binascii.hexlify(new_supplied_password_hash).decode('ascii')
+        value = json.dumps(self.passwords).encode('utf-8')
         
-        if password_type is not None:
-            message_names.insert(0, message_name_base + '-' + password_type)
-
-        for message_name in message_names:
-            message = self.messages.get(message_name)
-            if message is None:
-                message = config.messages.get(message_name)
-            if message is not None:
-                return message
-
-        return ''
-
+        d = self.client.set('/secant/users/{}/passwords'.format(self.username),
+                            value = value,
+                            prev_index = self.passwords_index)
+        d.addCallback(self.change_password_2, finished)
+    
+    def change_password_2(self, result, finished):
+        finished.callback(True)
+        
 class AlwaysFailUser(User):
     def __init__(self, username):
         User.__init__(self, username)
@@ -136,30 +112,26 @@ class AlwaysSucceedUser(User):
     def check_password(self, password_type, supplied_password):
         return defer.succeed(True)
 
-def find_user(username):
-    return defer.succeed(AlwaysSucceedUser(username))
-                              
-# class find_user(defer.Deferred):
-#     def __init__(self, username):
-#         defer.Deferred.__init__(self)
-#         self.username = username
+#def find_user(username):
+#    return defer.succeed(AlwaysSucceedUser(username))
 
-#         self.server = paisley.CouchDB('127.0.0.1')
+class find_user(defer.Deferred):
+    log = Logger()
 
-#         query = self.server.openView('secant', 'users', 'by_username', keys = [username])
-#         query.addCallback(self.parseResult)
-#         query.addErrback(self.errback)
+    def __init__(self, username):
+        defer.Deferred.__init__(self)
+        self.log.debug('looking for user: {u:}', u = username)
+        self.username = username
+        self.client = EtcdClient(reactor)
+        d = self.client.get('/secant/users/{}/passwords'.format(self.username))
+        d.addCallbacks(self.gotResponse, self.errResponse)
+        
+    def gotResponse(self, response):
+        passwords = json.loads(response.node.value)
+        passwords_index = response.node.modifiedIndex
+        self.callback(User(username = self.username,
+                           passwords = passwords,
+                           passwords_index = response.node.modifiedIndex))
 
-#     def parseResult(self, result):
-#         if len(result['rows']) == 0:
-#             self.errback('User %s not found!' % self.username)
-
-#         elif len(result['rows']) == 1:
-#             user = User(username = result['rows'][0]['value'].get('username', None),
-#                         passwords = result['rows'][0]['value'].get('passwords', {}),
-#                         messages = result['rows'][0]['value'].get('messages', {}),
-#                         authorization_rules = result['rows'][0]['value'].get('authorization_rules', []))
-#             self.callback(user)
-
-#         else:
-#             self.errback('Too many results!')
+    def errResponse(self, failure):
+        self.errback(failure)
